@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "PageWhat",
+  "version": "1.0.0",
+  "description": "Monitor web page changes - track text, structure, and keyword updates",
+  "permissions": [
+    "alarms",
+    "storage",
+    "scripting",
+    "notifications",
+    "offscreen",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "assets/icons/icon16.png",
+      "48": "assets/icons/icon48.png",
+      "128": "assets/icons/icon128.png"
+    }
+  },
+  "options_page": "options/options.html",
+  "icons": {
+    "16": "assets/icons/icon16.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
+  }
+}

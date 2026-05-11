@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>PageWhat - 管理面板</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <header class="app-header">
+      <h1 class="app-title">🔍 PageWhat</h1>
+      <span class="app-subtitle">网页变化监控</span>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="monitors">监控任务</button>
+      <button class="tab" data-tab="changes">变化记录</button>
+      <button class="tab" data-tab="errors">错误日志</button>
+      <button class="tab" data-tab="settings">设置</button>
+    </nav>
+
+    <!-- Monitors Tab -->
+    <div class="tab-content active" id="tab-monitors">
+      <div class="toolbar">
+        <button class="btn btn-primary" id="btn-add-task">+ 添加监控</button>
+      </div>
+
+      <!-- Add/Edit Form -->
+      <div class="modal-overlay hidden" id="modal-overlay">
+        <div class="modal">
+          <div class="modal-header">
+            <h2 id="modal-title">添加监控</h2>
+            <button class="btn-close" id="btn-close-modal">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-row">
+              <label>任务名称</label>
+              <input type="text" id="opt-name" placeholder="可选，默认使用域名" />
+            </div>
+            <div class="form-row">
+              <label>URL <span class="required">*</span></label>
+              <input type="url" id="opt-url" placeholder="https://example.com" />
+            </div>
+            <div class="form-row">
+              <label>CSS 选择器（留空监控全页）</label>
+              <input type="text" id="opt-selector" placeholder="如 #price, .content，留空监控全页" />
+            </div>
+            <div class="form-row">
+              <label>监控类型</label>
+              <select id="opt-type">
+                <option value="text">文本变化</option>
+                <option value="structure">结构变化</option>
+                <option value="keyword">关键词出现</option>
+              </select>
+            </div>
+            <div class="form-row opt-keywords-row hidden">
+              <label>关键词（逗号分隔）</label>
+              <input type="text" id="opt-keywords" placeholder="降价,缺货,在售" />
+            </div>
+            <div class="form-row">
+              <label>检查间隔</label>
+              <select id="opt-interval">
+                <option value="1">1 分钟</option>
+                <option value="5" selected>5 分钟</option>
+                <option value="15">15 分钟</option>
+                <option value="30">30 分钟</option>
+                <option value="60">1 小时</option>
+                <option value="360">6 小时</option>
+                <option value="1440">24 小时</option>
+              </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" id="btn-cancel">取消</button>
+            <button class="btn btn-primary" id="btn-save">保存</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Task Table -->
+      <div class="table-container">
+        <table class="data-table" id="task-table">
+          <thead>
+            <tr>
+              <th>状态</th>
+              <th>名称</th>
+              <th>URL</th>
+              <th>选择器</th>
+              <th>类型</th>
+              <th>间隔</th>
+              <th>上次检查</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="task-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="tasks-empty">暂无监控任务</div>
+      </div>
+    </div>
+
+    <!-- Changes Tab -->
+    <div class="tab-content" id="tab-changes">
+      <div class="toolbar">
+        <select id="filter-task" class="filter-select">
+          <option value="all">全部任务</option>
+        </select>
+        <select id="filter-time" class="filter-select">
+          <option value="all">全部时间</option>
+          <option value="today">今天</option>
+          <option value="week">本周</option>
+        </select>
+        <label class="filter-checkbox">
+          <input type="checkbox" id="filter-unread" /> 仅未读
+        </label>
+        <button class="btn btn-secondary" id="btn-mark-all-read">全部标记已读</button>
+      </div>
+
+      <div class="changes-list" id="changes-list">
+        <div class="empty-state" id="changes-empty">暂无变化记录</div>
+      </div>
+    </div>
+
+    <!-- Errors Tab -->
+    <div class="tab-content" id="tab-errors">
+      <div class="toolbar">
+        <select id="filter-error-task" class="filter-select">
+          <option value="all">全部任务</option>
+        </select>
+        <button class="btn btn-danger" id="btn-clear-all-errors">清除全部错误</button>
+      </div>
+
+      <div class="errors-list" id="errors-list">
+        <div class="empty-state" id="errors-empty">暂无错误记录</div>
+      </div>
+    </div>
+
+    <!-- Settings Tab -->
+    <div class="tab-content" id="tab-settings">
+      <div class="settings-section">
+        <h3>检查设置</h3>
+        <div class="setting-row">
+          <label>默认检查间隔</label>
+          <select id="set-default-interval">
+            <option value="1">1 分钟</option>
+            <option value="5" selected>5 分钟</option>
+            <option value="15">15 分钟</option>
+            <option value="30">30 分钟</option>
+            <option value="60">1 小时</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label>最大并发检查数</label>
+          <input type="number" id="set-max-concurrent" min="1" max="10" value="3" />
+        </div>
+        <div class="setting-row">
+          <label>连续错误自动暂停</label>
+          <input type="number" id="set-auto-disable" min="1" max="20" value="5" />
+          <span class="setting-hint">次</span>
+        </div>
+        <div class="setting-row">
+          <label>检查方式</label>
+          <select id="set-check-method">
+            <option value="auto">自动（推荐）</option>
+            <option value="tab">始终使用已打开标签页</option>
+            <option value="fetch">始终后台获取</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>通知设置</h3>
+        <div class="setting-row">
+          <label>浏览器通知</label>
+          <input type="checkbox" id="set-enable-notifications" checked />
+        </div>
+        <div class="setting-row">
+          <label>图标角标</label>
+          <input type="checkbox" id="set-enable-badge" checked />
+        </div>
+        <div class="setting-row">
+          <label>声音提醒</label>
+          <input type="checkbox" id="set-enable-sound" checked />
+        </div>
+        <div class="setting-row">
+          <label>音量</label>
+          <input type="range" id="set-sound-volume" min="0" max="100" value="70" />
+          <span class="setting-hint" id="volume-label">70%</span>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>数据管理</h3>
+        <div class="setting-row">
+          <label>每任务最大历史记录</label>
+          <input type="number" id="set-max-history" min="10" max="1000" value="100" />
+          <span class="setting-hint">条</span>
+        </div>
+        <div class="setting-row">
+          <button class="btn btn-secondary" id="btn-export">导出历史记录 (JSON)</button>
+          <button class="btn btn-danger" id="btn-clear-all-history">清除全部历史</button>
+        </div>
+      </div>
+
+      <div class="settings-actions">
+        <button class="btn btn-primary" id="btn-save-settings">保存设置</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="options.js" type="module"></script>
+</body>
+</html>
