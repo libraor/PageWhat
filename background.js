@@ -37,7 +37,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
  * 消息处理 - 来自 popup 和 options 页面
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'FETCH_AND_EXTRACT' || message.type === 'PLAY_SOUND') {
+  if (message.type === 'FETCH_AND_EXTRACT') {
     return false;
   }
 

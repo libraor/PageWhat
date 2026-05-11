@@ -1,8 +1,6 @@
 /**
  * offscreen.js - Offscreen 文档逻辑
- * 处理两类任务：
- * 1. FETCH_AND_EXTRACT: 通过 fetch 获取页面 HTML 并解析
- * 2. PLAY_SOUND: 播放提示音
+ * 处理任务：FETCH_AND_EXTRACT - 通过 fetch 获取页面 HTML 并解析
  */
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -13,13 +11,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ error: `FETCH_ERROR: ${error.message}`, text: null, html: null })
       );
     return true; // Keep message channel open for async response
-  }
-
-  if (message.type === 'PLAY_SOUND') {
-    handlePlaySound(message.volume)
-      .then(() => sendResponse({ success: true }))
-      .catch((error) => sendResponse({ success: false, error: error.message }));
-    return true;
   }
 });
 
@@ -82,17 +73,4 @@ async function handleFetchAndExtract(url, selector) {
     }
     return { error: `FETCH_ERROR: ${error.message}`, text: null, html: null };
   }
-}
-
-/**
- * 播放提示音
- */
-async function handlePlaySound(volume = 0.7) {
-  return new Promise((resolve, reject) => {
-    const audio = new Audio(chrome.runtime.getURL('assets/sounds/alert.wav'));
-    audio.volume = Math.max(0, Math.min(1, volume));
-    audio.addEventListener('ended', () => resolve());
-    audio.addEventListener('error', (_e) => reject(new Error('Audio playback failed')));
-    audio.play().catch(reject);
-  });
 }

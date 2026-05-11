@@ -49,9 +49,6 @@ const dom = {
   setCheckMethod: $('set-check-method'),
   setEnableNotifications: $('set-enable-notifications'),
   setEnableBadge: $('set-enable-badge'),
-  setEnableSound: $('set-enable-sound'),
-  setSoundVolume: $('set-sound-volume'),
-  volumeLabel: $('volume-label'),
   setMaxHistory: $('set-max-history'),
   btnExport: $('btn-export'),
   btnClearAllHistory: $('btn-clear-all-history'),
@@ -664,10 +661,6 @@ dom.btnClearAllErrors.addEventListener('click', async () => {
 // ==================== Settings Tab ====================
 
 function setupSettings() {
-  dom.setSoundVolume.addEventListener('input', () => {
-    dom.volumeLabel.textContent = dom.setSoundVolume.value + '%';
-  });
-
   dom.btnSaveSettings.addEventListener('click', handleSaveSettings);
 
   dom.btnExport.addEventListener('click', handleExport);
@@ -697,9 +690,6 @@ async function loadSettings() {
     dom.setCheckMethod.value = s.checkMethod;
     dom.setEnableNotifications.checked = s.enableNotifications;
     dom.setEnableBadge.checked = s.enableBadge;
-    dom.setEnableSound.checked = s.enableSound;
-    dom.setSoundVolume.value = Math.round(s.soundVolume * 100);
-    dom.volumeLabel.textContent = Math.round(s.soundVolume * 100) + '%';
     dom.setMaxHistory.value = s.maxHistoryPerTask;
   } catch (e) {
     console.error('Failed to load settings:', e);
@@ -717,8 +707,6 @@ async function handleSaveSettings() {
         checkMethod: dom.setCheckMethod.value,
         enableNotifications: dom.setEnableNotifications.checked,
         enableBadge: dom.setEnableBadge.checked,
-        enableSound: dom.setEnableSound.checked,
-        soundVolume: parseInt(dom.setSoundVolume.value) / 100,
         maxHistoryPerTask: parseInt(dom.setMaxHistory.value),
       },
     });
