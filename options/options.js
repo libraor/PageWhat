@@ -826,8 +826,25 @@ function formatTime(isoString) {
 
 // ==================== Diff Engine ====================
 
+/**
+ * 压缩等值段落中的空白和换行，使对比更紧凑
+ * 将连续空白（包括换行）折叠为最多一个换行 + 一个空格
+ */
+function compactWhitespace(text) {
+  // 先规范化：连续空白（含换行）转为单个空格，保留行间换行结构
+  return text.replace(/[\r\n\t ]{2,}/g, (match) => {
+    if (match.includes('\n')) {
+      // 包含换行 → 保留一个换行 + 前导空格
+      const leading = match.match(/^\s*/)[0];
+      return '\n' + leading.replace(/\s+/g, ' ');
+    }
+    // 纯空白 → 折叠为一个空格
+    return ' ';
+  }).replace(/^[\r\n]+|[\r\n]+$/g, '').replace(/  +/g, ' ');
+}
+
 const DIFF_MAX_TOKENS = 2000; // LCS 单次输入 token 上限（超过用分块 diff）
-const DIFF_CONTEXT_RADIUS = 200; // 变化区域前后保留的 token 数
+const DIFF_CONTEXT_RADIUS = 50; // 变化区域前后保留的 token 数（减少空白，提升可读性）
 const CHUNK_TARGET_SIZE = 512; // 内容分块目标大小（必须是 2 的幂）
 
 /**
@@ -1179,7 +1196,7 @@ function renderDiffHtml(segments, side) {
       continue;
     }
     if (seg.type === 'equal') {
-      html += escapeHtml(seg.text);
+      html += escapeHtml(compactWhitespace(seg.text));
     } else if (seg.type === 'removed' && side === 'before') {
       html += `<mark class="diff-removed">${escapeHtml(seg.text)}</mark>`;
     } else if (seg.type === 'removed' && side === 'after') {
@@ -1595,17 +1612,17 @@ function highlightOnPage(data) {
       '_diff_tab.active { color: #1a73e8 !important; border-bottom-color: #1a73e8 !important; }',
     '.' +
       P +
-      '_diff_content { flex: 1 !important; overflow-y: auto !important; padding: 16px 20px !important; }',
+      '_diff_content { flex: 1 !important; overflow-y: auto !important; padding: 12px 16px !important; }',
     '.' +
       P +
-      '_diff_grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; min-height: 100% !important; }',
+      '_diff_grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 12px !important; min-height: 100% !important; }',
     '.' + P + '_diff_col { min-width: 0 !important; }',
     '.' +
       P +
-      '_diff_label { font-size: 11px !important; font-weight: 600 !important; color: #888 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; margin-bottom: 8px !important; }',
+      '_diff_label { font-size: 11px !important; font-weight: 600 !important; color: #888 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; margin-bottom: 6px !important; }',
     '.' +
       P +
-      '_diff_text { background: #fafbfc !important; border: 1px solid #e8e8e8 !important; border-radius: 6px !important; padding: 12px 14px !important; font-size: 13px !important; line-height: 1.7 !important; word-break: break-word !important; white-space: pre-wrap !important; color: #333 !important; max-height: none !important; font-family: Consolas,Monaco,"Courier New",monospace !important; }',
+      '_diff_text { background: #fafbfc !important; border: 1px solid #e8e8e8 !important; border-radius: 6px !important; padding: 8px 10px !important; font-size: 12px !important; line-height: 1.5 !important; word-break: break-word !important; white-space: pre-wrap !important; color: #333 !important; max-height: none !important; font-family: Consolas,Monaco,"Courier New",monospace !important; }',
     '.' +
       P +
       '_diff_text mark.removed { background: #fdd !important; color: #b71c1c !important; text-decoration: line-through !important; border-radius: 2px !important; padding: 1px 3px !important; }',
@@ -1796,12 +1813,22 @@ function highlightOnPage(data) {
     return d.innerHTML;
   }
 
+  function compactWhitespaceLocal(text) {
+    return text.replace(/[\r\n\t ]{2,}/g, function (match) {
+      if (match.indexOf('\n') >= 0) {
+        var leading = match.match(/^\s*/)[0];
+        return '\n' + leading.replace(/\s+/g, ' ');
+      }
+      return ' ';
+    }).replace(/^[\r\n]+|[\r\n]+$/g, '').replace(/  +/g, ' ');
+  }
+
   function renderDiffToHtml(segs, side) {
     let html = '';
     for (let i = 0; i < segs.length; i++) {
       const s = segs[i];
       if (s.type === 'equal') {
-        html += escHtml(s.text);
+        html += escHtml(compactWhitespaceLocal(s.text));
       } else if (s.type === 'removed' && side === 'before') {
         html += '<mark class="removed">' + escHtml(s.text) + '</mark>';
       } else if (s.type === 'removed' && side === 'after') {
@@ -2255,7 +2282,7 @@ function highlightOnPage(data) {
       return segments;
     }
 
-    const RADIUS = 200;
+    const RADIUS = 50;
     const ranges = [];
     for (let c = 0; c < changeIdx.length; c++) {
       const start = Math.max(0, changeIdx[c] - RADIUS);

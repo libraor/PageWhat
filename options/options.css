@@ -430,9 +430,9 @@ body {
   background: #fafbfc;
   border: 1px solid #e8e8e8;
   border-radius: 6px;
-  padding: 10px 12px;
+  padding: 8px 10px;
   font-size: 12px;
-  line-height: 1.7;
+  line-height: 1.5;
   max-height: 320px;
   overflow-y: auto;
   word-break: break-word;

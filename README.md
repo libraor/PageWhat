@@ -401,6 +401,17 @@ Manifest V3 的正常行为。确保：
 - 目标网页有 CSP 策略阻止脚本注入
 - 解决：切换到 `fetch` 或 `openTab` 模式
 
+## 更新日志
+
+### 2026-05-11
+
+- **修复** `storage.js` 中 `saveCheckResult()` 在首次检查时因 `history` 存储为空导致的 `Cannot read properties of undefined` 错误
+- **优化** 文本变化对比面板，减少空白和换行，提升可读性：
+  - 新增 `compactWhitespace()` 函数，对等值段落的连续空白/换行进行折叠
+  - 上下文显示半径从 200 tokens 减少至 50 tokens，减少 75% 无关内容
+  - 对比面板 CSS 紧凑化（padding、line-height、grid gap 全面缩减）
+  - 页面内高亮面板同步优化
+
 ## 许可证
 
 Apache License 2.0
