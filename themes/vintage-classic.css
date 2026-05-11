@@ -1,0 +1,875 @@
+/**
+ * ============================================================
+ * Theme: Vintage Classic (复古经典)
+ * ============================================================
+ * 设计理念：致敬传统印刷美学，使用温暖的纸张色调、衬线字体和精致的边框装饰。
+ * 适用场景：内容出版、博客平台、文化类应用、档案管理系统。
+ */
+
+/* ----------------------------------------------------------
+   1. 色彩系统 (Color System)
+   ---------------------------------------------------------- */
+:root {
+  /* 主色 (Primary) - 深勃艮第酒红，传递优雅与历史感 */
+  --vc-primary-50: #fdf2f2;
+  --vc-primary-100: #fce7e7;
+  --vc-primary-200: #f9d5d5;
+  --vc-primary-300: #f4b5b5;
+  --vc-primary-400: #ea8686;
+  --vc-primary-500: #8b2635; /* 主操作色 - 勃艮第红 */
+  --vc-primary-600: #7a1f2d;
+  --vc-primary-700: #681a25;
+  --vc-primary-800: #52141d;
+  --vc-primary-900: #3d0f16;
+
+  /* 辅助色 (Secondary) - 古董金 */
+  --vc-secondary-50: #fdf9f0;
+  --vc-secondary-100: #f9f0db;
+  --vc-secondary-200: #f0deb3;
+  --vc-secondary-300: #e6cc8a;
+  --vc-secondary-400: #d4a84a;
+  --vc-secondary-500: #b8941f; /* 古董金 */
+  --vc-secondary-600: #9a7d1a;
+  --vc-secondary-700: #7c6615;
+  --vc-secondary-800: #5e4e10;
+  --vc-secondary-900: #40360b;
+
+  /* 语义色 (Semantic) */
+  --vc-success-50: #f0f5e8;
+  --vc-success-500: #4a6741;
+  --vc-success-600: #3d5635;
+  --vc-warning-50: #fdf6e3;
+  --vc-warning-500: #b8860b;
+  --vc-warning-600: #9a7009;
+  --vc-error-50: #fdf2f2;
+  --vc-error-500: #a93226;
+  --vc-error-600: #8f2b20;
+  --vc-info-50: #eef2f7;
+  --vc-info-500: #4a6fa5;
+
+  /* 中性色 (Neutral) - 纸张与墨水色调 */
+  --vc-white: #faf8f5; /* 暖白/纸张色 */
+  --vc-cream-50: #f5f0e8;
+  --vc-cream-100: #ebe4d6;
+  --vc-cream-200: #ddd3c1;
+  --vc-cream-300: #c9bba3;
+  --vc-cream-400: #a8997e;
+  --vc-cream-500: #8a7a62;
+  --vc-cream-600: #6e6050;
+  --vc-cream-700: #52483c;
+  --vc-cream-800: #383028;
+  --vc-cream-900: #1e1a16; /* 深褐墨水 */
+
+  /* 背景与文字 */
+  --vc-bg-body: #f5f0e8; /* 旧纸张背景 */
+  --vc-bg-card: #faf8f5; /* 卡片纸张色 */
+  --vc-bg-elevated: #ffffff;
+  --vc-text-primary: #2c2416; /* 深褐文字 */
+  --vc-text-secondary: #6e6050;
+  --vc-text-tertiary: #a8997e;
+  --vc-text-inverse: #faf8f5;
+
+  /* 边框与分割线 - 使用深色调模拟墨水 */
+  --vc-border-light: #ddd3c1;
+  --vc-border-medium: #c9bba3;
+  --vc-divider: #ebe4d6;
+
+  /* 阴影 (柔和、偏暖) */
+  --vc-shadow-sm: 0 1px 3px rgba(44, 36, 22, 0.08);
+  --vc-shadow-md: 0 4px 8px rgba(44, 36, 22, 0.1), 0 2px 4px rgba(44, 36, 22, 0.06);
+  --vc-shadow-lg: 0 8px 24px rgba(44, 36, 22, 0.12), 0 4px 8px rgba(44, 36, 22, 0.08);
+
+  /* 圆角 - 更克制，略带复古感 */
+  --vc-radius-sm: 2px;
+  --vc-radius-md: 4px;
+  --vc-radius-lg: 6px;
+  --vc-radius-xl: 8px;
+  --vc-radius-full: 9999px;
+}
+
+/* ----------------------------------------------------------
+   2. 排版规范 (Typography)
+   ---------------------------------------------------------- */
+:root {
+  /* 字体栈 - 优先使用衬线字体，营造印刷感 */
+  --vc-font-serif: 'Noto Serif SC', 'Songti SC', 'SimSun', 'STSong', 'Georgia', 'Times New Roman',
+    serif;
+  --vc-font-sans: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial,
+    sans-serif;
+  --vc-font-mono: 'Courier New', 'SimSun', 'Monaco', 'Consolas', monospace;
+
+  /* 字号层级 - 略大，强调阅读体验 */
+  --vc-text-xs: 11px;
+  --vc-text-sm: 12px;
+  --vc-text-base: 14px; /* 正文稍大 */
+  --vc-text-md: 15px;
+  --vc-text-lg: 17px;
+  --vc-text-xl: 20px;
+  --vc-text-2xl: 24px;
+  --vc-text-3xl: 32px;
+
+  /* 字重 */
+  --vc-weight-normal: 400;
+  --vc-weight-medium: 500;
+  --vc-weight-semibold: 600;
+  --vc-weight-bold: 700;
+
+  /* 行高 - 更宽松，提升阅读舒适度 */
+  --vc-leading-tight: 1.4;
+  --vc-leading-normal: 1.7;
+  --vc-leading-relaxed: 1.9;
+}
+
+/* ----------------------------------------------------------
+   3. 空间布局 (Spacing & Layout)
+   ---------------------------------------------------------- */
+:root {
+  /* 间距系统 */
+  --vc-space-1: 4px;
+  --vc-space-2: 8px;
+  --vc-space-3: 12px;
+  --vc-space-4: 16px;
+  --vc-space-5: 20px;
+  --vc-space-6: 24px;
+  --vc-space-8: 32px;
+  --vc-space-10: 40px;
+  --vc-space-12: 48px;
+  --vc-space-16: 64px;
+
+  /* 容器 */
+  --vc-container-max: 960px;
+  --vc-popup-width: 360px;
+  --vc-popup-max-height: 580px;
+
+  /* 过渡动画 - 稍慢，更优雅 */
+  --vc-transition-fast: 200ms ease;
+  --vc-transition-base: 300ms ease;
+}
+
+/* ----------------------------------------------------------
+   4. 基础重置与全局样式
+   ---------------------------------------------------------- */
+.vintage-classic,
+.vintage-classic * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.vintage-classic body {
+  font-family: var(--vc-font-serif);
+  font-size: var(--vc-text-base);
+  color: var(--vc-text-primary);
+  background: var(--vc-bg-body);
+  line-height: var(--vc-leading-normal);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ----------------------------------------------------------
+   5. 组件样式 (Components)
+   ---------------------------------------------------------- */
+
+/* --- 按钮 (Button) --- */
+.vc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vc-space-1);
+  padding: 8px 16px;
+  border: 1.5px solid transparent;
+  border-radius: var(--vc-radius-md);
+  font-family: var(--vc-font-sans);
+  font-size: var(--vc-text-base);
+  font-weight: var(--vc-weight-medium);
+  line-height: var(--vc-leading-tight);
+  cursor: pointer;
+  transition: all var(--vc-transition-base);
+  outline: none;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+}
+
+.vc-btn:focus-visible {
+  box-shadow: 0 0 0 2px var(--vc-primary-300);
+}
+
+/* 主要按钮 - 勃艮第红 */
+.vc-btn-primary {
+  background: var(--vc-primary-500);
+  color: var(--vc-text-inverse);
+  border-color: var(--vc-primary-500);
+}
+.vc-btn-primary:hover {
+  background: var(--vc-primary-600);
+  border-color: var(--vc-primary-600);
+}
+.vc-btn-primary:active {
+  background: var(--vc-primary-700);
+  border-color: var(--vc-primary-700);
+}
+.vc-btn-primary:disabled {
+  background: var(--vc-primary-200);
+  border-color: var(--vc-primary-200);
+  cursor: not-allowed;
+}
+
+/* 次要按钮 - 描边风格 */
+.vc-btn-secondary {
+  background: transparent;
+  color: var(--vc-text-primary);
+  border-color: var(--vc-border-medium);
+}
+.vc-btn-secondary:hover {
+  background: var(--vc-cream-50);
+  border-color: var(--vc-cream-500);
+}
+.vc-btn-secondary:active {
+  background: var(--vc-cream-100);
+}
+.vc-btn-secondary:disabled {
+  color: var(--vc-text-tertiary);
+  border-color: var(--vc-border-light);
+  cursor: not-allowed;
+}
+
+/* 危险按钮 */
+.vc-btn-danger {
+  background: transparent;
+  color: var(--vc-error-500);
+  border-color: var(--vc-error-500);
+}
+.vc-btn-danger:hover {
+  background: var(--vc-error-50);
+}
+.vc-btn-danger:active {
+  background: var(--vc-error-100);
+}
+
+/* 文字按钮 */
+.vc-btn-text {
+  background: transparent;
+  color: var(--vc-primary-500);
+  padding: 4px 8px;
+  border: none;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: transparent;
+}
+.vc-btn-text:hover {
+  text-decoration-color: var(--vc-primary-300);
+}
+
+/* 图标按钮 */
+.vc-btn-icon {
+  padding: 6px;
+  border-radius: var(--vc-radius-md);
+  background: none;
+  border: none;
+  color: var(--vc-text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  transition: all var(--vc-transition-fast);
+}
+.vc-btn-icon:hover {
+  background: var(--vc-cream-100);
+  color: var(--vc-text-primary);
+}
+.vc-btn-icon:active {
+  background: var(--vc-cream-200);
+}
+
+/* 按钮尺寸 */
+.vc-btn-sm {
+  padding: 4px 10px;
+  font-size: var(--vc-text-sm);
+}
+.vc-btn-lg {
+  padding: 10px 20px;
+  font-size: var(--vc-text-md);
+}
+
+/* --- 卡片 (Card) - 带装饰边框 --- */
+.vc-card {
+  background: var(--vc-bg-card);
+  border-radius: var(--vc-radius-lg);
+  border: 1px solid var(--vc-border-light);
+  box-shadow: var(--vc-shadow-sm);
+  transition: box-shadow var(--vc-transition-base);
+}
+.vc-card:hover {
+  box-shadow: var(--vc-shadow-md);
+}
+.vc-card-header {
+  padding: var(--vc-space-4) var(--vc-space-5);
+  border-bottom: 1px solid var(--vc-divider);
+  font-family: var(--vc-font-serif);
+  font-weight: var(--vc-weight-semibold);
+  font-size: var(--vc-text-md);
+  color: var(--vc-text-primary);
+}
+.vc-card-body {
+  padding: var(--vc-space-4) var(--vc-space-5);
+}
+.vc-card-footer {
+  padding: var(--vc-space-3) var(--vc-space-5);
+  border-top: 1px solid var(--vc-divider);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vc-space-2);
+}
+
+/* --- 表单元素 (Form) --- */
+.vc-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vc-space-1);
+}
+.vc-form-group label {
+  font-family: var(--vc-font-sans);
+  font-size: var(--vc-text-xs);
+  font-weight: var(--vc-weight-medium);
+  color: var(--vc-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.vc-input,
+.vc-select {
+  padding: 8px 12px;
+  border: 1.5px solid var(--vc-border-light);
+  border-radius: var(--vc-radius-md);
+  font-family: var(--vc-font-sans);
+  font-size: var(--vc-text-base);
+  color: var(--vc-text-primary);
+  background: var(--vc-bg-elevated);
+  outline: none;
+  transition: all var(--vc-transition-base);
+  width: 100%;
+}
+.vc-input::placeholder {
+  color: var(--vc-text-tertiary);
+  font-style: italic;
+}
+.vc-input:hover,
+.vc-select:hover {
+  border-color: var(--vc-border-medium);
+}
+.vc-input:focus,
+.vc-select:focus {
+  border-color: var(--vc-primary-500);
+  box-shadow: 0 0 0 2px var(--vc-primary-100);
+}
+.vc-input:disabled,
+.vc-select:disabled {
+  background: var(--vc-cream-100);
+  color: var(--vc-text-tertiary);
+  cursor: not-allowed;
+}
+
+/* --- 表格 (Table) - 经典网格线风格 --- */
+.vc-table-container {
+  background: var(--vc-bg-card);
+  border-radius: var(--vc-radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--vc-border-light);
+}
+.vc-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.vc-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-family: var(--vc-font-sans);
+  font-size: var(--vc-text-xs);
+  font-weight: var(--vc-weight-semibold);
+  color: var(--vc-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  background: var(--vc-cream-100);
+  border-bottom: 2px solid var(--vc-border-medium);
+}
+.vc-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--vc-divider);
+  font-size: var(--vc-text-base);
+  color: var(--vc-text-primary);
+}
+.vc-table tr:last-child td {
+  border-bottom: none;
+}
+.vc-table tbody tr {
+  transition: background var(--vc-transition-fast);
+}
+.vc-table tbody tr:hover {
+  background: var(--vc-primary-50);
+}
+
+/* --- 标签/徽章 (Badge) - 复古标签风格 --- */
+.vc-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: var(--vc-radius-sm);
+  font-family: var(--vc-font-sans);
+  font-size: var(--vc-text-xs);
+  font-weight: var(--vc-weight-semibold);
+  line-height: 1;
+  letter-spacing: 0.3px;
+}
+.vc-badge-primary {
+  background: var(--vc-primary-500);
+  color: var(--vc-text-inverse);
+}
+.vc-badge-success {
+  background: var(--vc-success-500);
+  color: var(--vc-text-inverse);
+}
+.vc-badge-warning {
+  background: var(--vc-warning-500);
+  color: var(--vc-text-inverse);
+}
+.vc-badge-error {
+  background: var(--vc-error-500);
+  color: var(--vc-text-inverse);
+}
+
+/* --- 状态指示点 --- */
+.vc-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.vc-status-dot.active {
+  background: var(--vc-success-500);
+}
+.vc-status-dot.unread {
+  background: var(--vc-warning-500);
+}
+.vc-status-dot.error {
+  background: var(--vc-error-500);
+}
+.vc-status-dot.inactive {
+  background: var(--vc-cream-400);
+}
+
+/* --- 标签页 (Tabs) - 经典下划线风格 --- */
+.vc-tabs {
+  display: flex;
+  background: var(--vc-bg-card);
+  border-bottom: 2px solid var(--vc-divider);
+  padding: 0 var(--vc-space-6);
+}
+.vc-tab {
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-family: var(--vc-font-sans);
+  font-size: var(--vc-text-md);
+  font-weight: var(--vc-weight-medium);
+  color: var(--vc-text-secondary);
+  cursor: pointer;
+  transition: all var(--vc-transition-base);
+}
+.vc-tab:hover {
+  color: var(--vc-primary-500);
+}
+.vc-tab.active {
+  color: var(--vc-primary-500);
+  border-bottom-color: var(--vc-primary-500);
+}
+
+/* --- 模态框 (Modal) --- */
+.vc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(30, 26, 22, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.vc-modal {
+  background: var(--vc-bg-elevated);
+  border-radius: var(--vc-radius-xl);
+  width: 480px;
+  max-width: 90vw;
+  box-shadow: var(--vc-shadow-lg);
+  border: 1px solid var(--vc-border-light);
+  animation: vc-modal-in 0.3s ease-out;
+}
+@keyframes vc-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.vc-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--vc-space-5) var(--vc-space-6);
+  border-bottom: 1px solid var(--vc-divider);
+}
+.vc-modal-header h2 {
+  font-family: var(--vc-font-serif);
+  font-size: var(--vc-text-lg);
+  font-weight: var(--vc-weight-semibold);
+}
+.vc-modal-body {
+  padding: var(--vc-space-5) var(--vc-space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vc-space-4);
+}
+.vc-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--vc-space-2);
+  padding: var(--vc-space-4) var(--vc-space-6);
+  border-top: 1px solid var(--vc-divider);
+}
+
+/* --- Toast 提示 --- */
+.vc-toast {
+  position: fixed;
+  bottom: var(--vc-space-5);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--vc-cream-800);
+  color: var(--vc-text-inverse);
+  padding: 8px 16px;
+  border-radius: var(--vc-radius-md);
+  font-family: var(--vc-font-sans);
+  font-size: var(--vc-text-sm);
+  z-index: 200;
+  animation: vc-toast-in 0.3s ease-out, vc-toast-out 0.3s 2s forwards;
+}
+@keyframes vc-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+@keyframes vc-toast-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* --- 设置面板 --- */
+.vc-settings-section {
+  background: var(--vc-bg-card);
+  border-radius: var(--vc-radius-lg);
+  padding: var(--vc-space-5) var(--vc-space-6);
+  margin-bottom: var(--vc-space-4);
+  border: 1px solid var(--vc-border-light);
+}
+.vc-settings-section h3 {
+  font-family: var(--vc-font-serif);
+  font-size: var(--vc-text-md);
+  font-weight: var(--vc-weight-semibold);
+  margin-bottom: var(--vc-space-4);
+  padding-bottom: var(--vc-space-3);
+  border-bottom: 1px solid var(--vc-divider);
+}
+.vc-setting-row {
+  display: flex;
+  align-items: center;
+  gap: var(--vc-space-3);
+  margin-bottom: var(--vc-space-3);
+}
+.vc-setting-row label {
+  min-width: 160px;
+  font-family: var(--vc-font-sans);
+  font-size: var(--vc-text-base);
+  color: var(--vc-text-secondary);
+}
+.vc-setting-hint {
+  font-family: var(--vc-font-sans);
+  font-size: var(--vc-text-sm);
+  color: var(--vc-text-tertiary);
+}
+
+/* --- 差异对比 (Diff) --- */
+.vc-diff-content {
+  background: var(--vc-cream-50);
+  border: 1px solid var(--vc-border-light);
+  border-radius: var(--vc-radius-md);
+  padding: 10px 12px;
+  font-family: var(--vc-font-mono);
+  font-size: var(--vc-text-sm);
+  line-height: var(--vc-leading-relaxed);
+  max-height: 320px;
+  overflow-y: auto;
+  word-break: break-word;
+  white-space: pre-wrap;
+  color: var(--vc-text-primary);
+}
+.vc-diff-removed {
+  background: #f9d5d5;
+  color: #7a1f2d;
+  text-decoration: line-through;
+  border-radius: 1px;
+  padding: 1px 3px;
+}
+.vc-diff-added {
+  background: #e8f0e0;
+  color: #3d5635;
+  border-radius: 1px;
+  padding: 1px 3px;
+}
+.vc-diff-keyword {
+  background: #f9f0db;
+  color: #7c6615;
+  border-radius: 1px;
+  padding: 1px 3px;
+  font-weight: var(--vc-weight-semibold);
+}
+
+/* --- 空状态 --- */
+.vc-empty-state {
+  text-align: center;
+  color: var(--vc-text-tertiary);
+  padding: var(--vc-space-10) var(--vc-space-6);
+  font-size: var(--vc-text-md);
+  font-style: italic;
+}
+
+/* ----------------------------------------------------------
+   6. 页面特定布局
+   ---------------------------------------------------------- */
+
+/* --- Popup 弹窗 --- */
+.vc-popup-container {
+  display: flex;
+  flex-direction: column;
+  max-height: var(--vc-popup-max-height);
+  width: var(--vc-popup-width);
+  background: var(--vc-bg-body);
+}
+.vc-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--vc-space-3) var(--vc-space-4);
+  background: var(--vc-primary-500);
+  color: var(--vc-text-inverse);
+}
+.vc-popup-header .title {
+  font-family: var(--vc-font-serif);
+  font-size: var(--vc-text-md);
+  font-weight: var(--vc-weight-semibold);
+}
+.vc-popup-status-bar {
+  display: flex;
+  gap: var(--vc-space-4);
+  padding: var(--vc-space-2) var(--vc-space-4);
+  background: var(--vc-bg-card);
+  border-bottom: 1px solid var(--vc-border-light);
+  font-family: var(--vc-font-sans);
+  font-size: var(--vc-text-sm);
+  color: var(--vc-text-secondary);
+}
+.vc-popup-task-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--vc-space-1) 0;
+}
+.vc-popup-task-item {
+  display: flex;
+  align-items: center;
+  gap: var(--vc-space-3);
+  padding: 10px var(--vc-space-4);
+  background: var(--vc-bg-card);
+  border-bottom: 1px solid var(--vc-divider);
+  cursor: pointer;
+  transition: background var(--vc-transition-fast);
+}
+.vc-popup-task-item:hover {
+  background: var(--vc-primary-50);
+}
+.vc-popup-task-item.has-unread {
+  background: var(--vc-warning-50);
+}
+.vc-popup-task-item.has-unread:hover {
+  background: #f9f0db;
+}
+.vc-popup-footer {
+  padding: var(--vc-space-2) var(--vc-space-4);
+  text-align: center;
+  border-top: 1px solid var(--vc-border-light);
+  background: var(--vc-bg-card);
+}
+
+/* --- Options 管理页面 --- */
+.vc-app {
+  max-width: var(--vc-container-max);
+  margin: 0 auto;
+  min-height: 100vh;
+}
+.vc-app-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--vc-space-3);
+  padding: var(--vc-space-6) var(--vc-space-8);
+  background: var(--vc-primary-500);
+  color: var(--vc-text-inverse);
+}
+.vc-app-header .app-title {
+  font-family: var(--vc-font-serif);
+  font-size: var(--vc-text-2xl);
+  font-weight: var(--vc-weight-semibold);
+}
+.vc-app-header .app-subtitle {
+  font-family: var(--vc-font-sans);
+  font-size: var(--vc-text-base);
+  opacity: 0.85;
+}
+.vc-app-content {
+  padding: var(--vc-space-6) var(--vc-space-8);
+}
+.vc-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--vc-space-3);
+  margin-bottom: var(--vc-space-5);
+  flex-wrap: wrap;
+}
+
+/* --- 变化记录卡片 --- */
+.vc-change-card {
+  background: var(--vc-bg-card);
+  border-radius: var(--vc-radius-lg);
+  padding: var(--vc-space-4) var(--vc-space-5);
+  border: 1px solid var(--vc-border-light);
+  box-shadow: var(--vc-shadow-sm);
+  transition: box-shadow var(--vc-transition-base);
+}
+.vc-change-card:hover {
+  box-shadow: var(--vc-shadow-md);
+}
+.vc-change-card.unread {
+  border-left: 3px solid var(--vc-primary-500);
+}
+.vc-change-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--vc-space-2);
+}
+.vc-change-title {
+  font-family: var(--vc-font-serif);
+  font-size: var(--vc-text-md);
+  font-weight: var(--vc-weight-semibold);
+}
+.vc-change-time {
+  font-family: var(--vc-font-sans);
+  font-size: var(--vc-text-sm);
+  color: var(--vc-text-tertiary);
+}
+
+/* --- 错误卡片 --- */
+.vc-error-card {
+  background: var(--vc-bg-card);
+  border-radius: var(--vc-radius-lg);
+  padding: var(--vc-space-4) var(--vc-space-5);
+  border: 1px solid var(--vc-border-light);
+  box-shadow: var(--vc-shadow-sm);
+  border-left: 3px solid var(--vc-error-500);
+  transition: box-shadow var(--vc-transition-base);
+}
+.vc-error-card:hover {
+  box-shadow: var(--vc-shadow-md);
+}
+.vc-error-message {
+  background: var(--vc-cream-50);
+  border: 1px solid var(--vc-border-light);
+  border-radius: var(--vc-radius-md);
+  padding: 10px 12px;
+  font-family: var(--vc-font-mono);
+  font-size: var(--vc-text-sm);
+  line-height: var(--vc-leading-relaxed);
+  max-height: 160px;
+  overflow-y: auto;
+  word-break: break-word;
+  white-space: pre-wrap;
+  color: var(--vc-error-600);
+}
+
+/* ----------------------------------------------------------
+   7. 响应式设计
+   ---------------------------------------------------------- */
+@media (max-width: 768px) {
+  .vc-app-header,
+  .vc-tabs,
+  .vc-app-content {
+    padding-left: var(--vc-space-4);
+    padding-right: var(--vc-space-4);
+  }
+
+  .vc-table th,
+  .vc-table td {
+    padding: 8px 10px;
+    font-size: var(--vc-text-sm);
+  }
+
+  .vc-modal {
+    width: 100%;
+    max-width: 100vw;
+    border-radius: var(--vc-radius-lg) var(--vc-radius-lg) 0 0;
+    margin-top: auto;
+    margin-bottom: 0;
+  }
+
+  .vc-modal-overlay {
+    align-items: flex-end;
+  }
+
+  .vc-setting-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--vc-space-1);
+  }
+  .vc-setting-row label {
+    min-width: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .vc-popup-container {
+    width: 100vw;
+  }
+
+  .vc-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .vc-tabs {
+    padding: 0 var(--vc-space-2);
+    overflow-x: auto;
+  }
+  .vc-tab {
+    padding: 10px 14px;
+    font-size: var(--vc-text-sm);
+    white-space: nowrap;
+  }
+}

@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PageWhat 主题系统演示</title>
+    <link rel="stylesheet" href="modern-minimal.css" />
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC',
+          'Microsoft YaHei', sans-serif;
+        margin: 0;
+        padding: 0;
+      }
+      .demo-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: #1e293b;
+        color: white;
+        padding: 12px 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        z-index: 1000;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+      .demo-nav h1 {
+        font-size: 16px;
+        margin: 0;
+      }
+      .demo-nav select {
+        padding: 6px 12px;
+        border-radius: 4px;
+        border: 1px solid #475569;
+        background: #334155;
+        color: white;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .demo-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 80px 24px 40px;
+      }
+      .demo-section {
+        margin-bottom: 48px;
+      }
+      .demo-section h2 {
+        font-size: 20px;
+        margin-bottom: 20px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #e5e7eb;
+      }
+      .demo-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 20px;
+      }
+      .demo-item {
+        padding: 16px;
+        border: 1px dashed #d1d5db;
+        border-radius: 8px;
+      }
+      .demo-item h3 {
+        font-size: 14px;
+        color: #6b7280;
+        margin-bottom: 12px;
+      }
+    </style>
+  </head>
+  <body class="modern-minimal">
+    <nav class="demo-nav">
+      <h1>PageWhat 主题系统</h1>
+      <select id="theme-selector">
+        <option value="modern-minimal">现代简约</option>
+        <option value="vintage-classic">复古经典</option>
+        <option value="future-tech">未来科技</option>
+        <option value="nature-fresh">自然清新</option>
+        <option value="business-pro">商务专业</option>
+      </select>
+    </nav>
+
+    <div class="demo-container">
+      <!-- 按钮组件 -->
+      <section class="demo-section">
+        <h2>按钮组件</h2>
+        <div class="demo-grid">
+          <div class="demo-item">
+            <h3>主要按钮</h3>
+            <button class="mm-btn mm-btn-primary">主要按钮</button>
+            <button class="mm-btn mm-btn-primary" disabled>禁用状态</button>
+          </div>
+          <div class="demo-item">
+            <h3>次要按钮</h3>
+            <button class="mm-btn mm-btn-secondary">次要按钮</button>
+            <button class="mm-btn mm-btn-secondary" disabled>禁用状态</button>
+          </div>
+          <div class="demo-item">
+            <h3>危险按钮</h3>
+            <button class="mm-btn mm-btn-danger">危险按钮</button>
+          </div>
+          <div class="demo-item">
+            <h3>文字按钮</h3>
+            <button class="mm-btn mm-btn-text">文字按钮</button>
+          </div>
+          <div class="demo-item">
+            <h3>按钮尺寸</h3>
+            <button class="mm-btn mm-btn-primary mm-btn-sm">小按钮</button>
+            <button class="mm-btn mm-btn-primary">默认</button>
+            <button class="mm-btn mm-btn-primary mm-btn-lg">大按钮</button>
+          </div>
+          <div class="demo-item">
+            <h3>图标按钮</h3>
+            <button class="mm-btn-icon">⚙️</button>
+            <button class="mm-btn-icon">🗑️</button>
+            <button class="mm-btn-icon">✏️</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 表单组件 -->
+      <section class="demo-section">
+        <h2>表单组件</h2>
+        <div class="demo-grid">
+          <div class="demo-item">
+            <h3>输入框</h3>
+            <div class="mm-form-group">
+              <label>用户名</label>
+              <input type="text" class="mm-input" placeholder="请输入用户名" />
+            </div>
+          </div>
+          <div class="demo-item">
+            <h3>下拉选择</h3>
+            <div class="mm-form-group">
+              <label>监控类型</label>
+              <select class="mm-select">
+                <option>文本变化</option>
+                <option>结构变化</option>
+                <option>关键词出现</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 卡片组件 -->
+      <section class="demo-section">
+        <h2>卡片组件</h2>
+        <div class="demo-grid">
+          <div class="mm-card">
+            <div class="mm-card-header">卡片标题</div>
+            <div class="mm-card-body">
+              <p>这是卡片内容区域，可以放置各种信息和操作。</p>
+            </div>
+            <div class="mm-card-footer">
+              <button class="mm-btn mm-btn-secondary">取消</button>
+              <button class="mm-btn mm-btn-primary">确认</button>
+            </div>
+          </div>
+          <div class="mm-card">
+            <div class="mm-card-header">变化记录</div>
+            <div class="mm-card-body">
+              <div class="mm-change-header">
+                <span class="mm-change-title">价格变动</span>
+                <span class="mm-change-time">2分钟前</span>
+              </div>
+              <div class="mm-diff-content">
+                <span class="mm-diff-removed">¥199</span>
+                <span class="mm-diff-added">¥149</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 徽章与状态 -->
+      <section class="demo-section">
+        <h2>徽章与状态</h2>
+        <div class="demo-grid">
+          <div class="demo-item">
+            <h3>徽章</h3>
+            <span class="mm-badge mm-badge-primary">主要</span>
+            <span class="mm-badge mm-badge-success">成功</span>
+            <span class="mm-badge mm-badge-warning">警告</span>
+            <span class="mm-badge mm-badge-error">错误</span>
+          </div>
+          <div class="demo-item">
+            <h3>状态指示点</h3>
+            <span class="mm-status-dot active"></span> 活跃
+            <span class="mm-status-dot unread"></span> 未读
+            <span class="mm-status-dot error"></span> 错误
+            <span class="mm-status-dot inactive"></span> 停用
+          </div>
+        </div>
+      </section>
+
+      <!-- 表格 -->
+      <section class="demo-section">
+        <h2>数据表格</h2>
+        <div class="mm-table-container">
+          <table class="mm-table">
+            <thead>
+              <tr>
+                <th>状态</th>
+                <th>名称</th>
+                <th>URL</th>
+                <th>类型</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="mm-status-dot active"></span></td>
+                <td>商品监控</td>
+                <td>example.com</td>
+                <td><span class="mm-badge mm-badge-primary">文本</span></td>
+                <td>
+                  <button class="mm-btn mm-btn-sm mm-btn-secondary">编辑</button>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="mm-status-dot unread"></span></td>
+                <td>库存检查</td>
+                <td>shop.com</td>
+                <td><span class="mm-badge mm-badge-success">结构</span></td>
+                <td>
+                  <button class="mm-btn mm-btn-sm mm-btn-secondary">编辑</button>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="mm-status-dot error"></span></td>
+                <td>价格追踪</td>
+                <td>price.com</td>
+                <td><span class="mm-badge mm-badge-warning">关键词</span></td>
+                <td>
+                  <button class="mm-btn mm-btn-sm mm-btn-secondary">编辑</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 标签页 -->
+      <section class="demo-section">
+        <h2>标签页</h2>
+        <div class="mm-tabs">
+          <button class="mm-tab active">监控任务</button>
+          <button class="mm-tab">变化记录</button>
+          <button class="mm-tab">错误日志</button>
+          <button class="mm-tab">设置</button>
+        </div>
+      </section>
+
+      <!-- 设置面板 -->
+      <section class="demo-section">
+        <h2>设置面板</h2>
+        <div class="mm-settings-section">
+          <h3>检查设置</h3>
+          <div class="mm-setting-row">
+            <label>默认检查间隔</label>
+            <select class="mm-select">
+              <option>1 分钟</option>
+              <option selected>5 分钟</option>
+              <option>15 分钟</option>
+            </select>
+          </div>
+          <div class="mm-setting-row">
+            <label>最大并发检查数</label>
+            <input type="number" class="mm-input" value="3" style="width: 80px" />
+            <span class="mm-setting-hint">个</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 空状态 -->
+      <section class="demo-section">
+        <h2>空状态</h2>
+        <div class="mm-empty-state">暂无监控任务，点击上方添加</div>
+      </section>
+    </div>
+
+    <script type="module">
+      import { switchTheme } from './theme-system.js';
+
+      const selector = document.getElementById('theme-selector');
+      const body = document.body;
+
+      selector.addEventListener('change', async (e) => {
+        const themeId = e.target.value;
+        await switchTheme(themeId);
+
+        // 更新演示页面中的类名前缀
+        updateDemoClasses(themeId);
+      });
+
+      function updateDemoClasses(themeId) {
+        const prefixMap = {
+          'modern-minimal': 'mm',
+          'vintage-classic': 'vc',
+          'future-tech': 'ft',
+          'nature-fresh': 'nf',
+          'business-pro': 'bp',
+        };
+
+        const oldPrefix = prefixMap[body.className] || 'mm';
+        const newPrefix = prefixMap[themeId];
+
+        // 更新 body 类名
+        body.className = themeId;
+
+        // 更新所有演示组件的类名
+        const elements = document.querySelectorAll(`[class*="${oldPrefix}-"]`);
+        elements.forEach((el) => {
+          const classes = el.className.split(' ');
+          const newClasses = classes.map((c) => {
+            if (c.startsWith(oldPrefix + '-')) {
+              return c.replace(oldPrefix + '-', newPrefix + '-');
+            }
+            return c;
+          });
+          el.className = newClasses.join(' ');
+        });
+      }
+    </script>
+  </body>
+</html>
