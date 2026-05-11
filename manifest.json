@@ -3,17 +3,8 @@
   "name": "PageWhat",
   "version": "1.0.0",
   "description": "Monitor web page changes - track text, structure, and keyword updates",
-  "permissions": [
-    "alarms",
-    "storage",
-    "scripting",
-    "notifications",
-    "offscreen",
-    "activeTab"
-  ],
-  "host_permissions": [
-    "<all_urls>"
-  ],
+  "permissions": ["alarms", "storage", "scripting", "notifications", "offscreen", "activeTab"],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js",
     "type": "module"

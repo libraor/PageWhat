@@ -1,0 +1,27 @@
+{
+  "name": "pagewhat",
+  "version": "1.0.0",
+  "description": "PageWhat Chrome Extension - Monitor web page changes",
+  "scripts": {
+    "lint": "eslint lib/ offscreen/ popup/ options/ background.js --ext .js",
+    "lint:fix": "eslint lib/ offscreen/ popup/ options/ background.js --ext .js --fix",
+    "format": "prettier --write \"**/*.{js,json,md,css,html}\"",
+    "format:check": "prettier --check \"**/*.{js,json,md,css,html}\"",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
+    "validate": "npm run lint && npm run format:check && npm run test"
+  },
+  "devDependencies": {
+    "eslint": "^8.56.0",
+    "husky": "^9.0.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^30.4.1",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "type": "module"
+}

@@ -1,493 +1,417 @@
-# PageWhat - 网页变化监控 Chrome 扩展
+# PageWhat
 
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)](https://developer.chrome.com/docs/extensions/mv3/)
-[![纯原生JS](https://img.shields.io/badge/Tech-Vanilla%20JS%2FHTML%2FCSS-orange)](https://developer.mozilla.org/)
 [![ES Modules](https://img.shields.io/badge/Module-ES%20Modules-green)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules)
+[![ESLint](https://img.shields.io/badge/Lint-ESLint-4B32C3)](https://eslint.org/)
+[![Prettier](https://img.shields.io/badge/Format-Prettier-F7B93E)](https://prettier.io/)
+[![Jest](https://img.shields.io/badge/Test-Jest-C21325)](https://jestjs.io/)
 
-一个轻量级的 Chrome 扩展程序，用于监控网页内容变化（文本、结构、关键词），无需构建工具，纯原生 JS/HTML/CSS 开发。
+Chrome 扩展，监控网页内容变化——文本增删、结构改变、关键词出现，变化一目了然。
 
-## 📋 目录
+## 功能亮点
 
-- [功能特性](#功能特性)
-- [技术栈](#技术栈)
-- [快速安装](#快速安装)
-- [日常开发指南](#日常开发指南)
-- [项目结构](#项目结构)
-- [核心架构](#核心架构)
-- [调试技巧](#调试技巧)
-- [Manifest V3 开发注意事项](#manifest-v3-开发注意事项)
-- [常见问题](#常见问题)
+### 三种监控模式
 
-## ✨ 功能特性
+| 模式       | 说明                                              |
+| ---------- | ------------------------------------------------- |
+| 文本监控   | 检测网页文本内容增删，Buzhash CDC + LCS 精确 diff |
+| 结构监控   | 检测 HTML 标签结构变化，归一化后比对              |
+| 关键词监控 | 监控指定关键词出现，自动去重避免重复通知          |
 
-- **三种监控模式**
-  - 📝 文本监控：检测网页文本内容变化
-  - 🏗️ 结构监控：检测 HTML 结构变化
-  - 🔍 关键词监控：监控指定关键词出现
+### 智能检查策略
 
-- **智能检查策略**
-  - Tab 注入模式（保留登录态）
-  - Offscreen fetch 模式（无需打开 Tab）
-  - 自动模式（智能选择最优策略）
+- **Tab 注入** — 复用已打开的标签页，保留登录态
+- **Offscreen fetch** — 后台 fetch + DOMParser，无需打开标签页
+- **Open Tab** — 打开后台标签页等待 JS 渲染，适用于 SPA
+- **自动模式（推荐）** — 依次尝试 Tab 注入 → fetch → openTab，智能降级
+- **并发控制** — `maxConcurrentChecks` 限制同时执行的检查数，超出时跳过并标记 `skipped`
 
-- **多重通知**
-  - Chrome 原生通知
-  - 扩展图标角标
-  - 声音提醒（WAV 格式）
+### 精确变化对比
 
-- **变化对比**
-  - SHA-256 哈希快速比对
-  - 字符级 diff 高亮显示
-  - 支持在原始页面高亮变化位置
+- **Buzhash 内容定义分块** — 大文本也能精确 diff，相同内容在不同位置产生相同分块边界
+- **LCS token 算法** — CJK 逐字、英文按单词，精确到词级差异
+- **可折叠对比面板** — 默认只显示变化区域及上下文，一键切换完整差异
+- **页面内高亮** — 点击"在页面中显示"，直接在原始页面上标记新增（绿底）、删除（红删除线）、关键词（橙色）
 
-## 🛠️ 技术栈
+### 多重通知
 
-- **Manifest V3** - Chrome 扩展最新标准
-- **纯原生 JS/HTML/CSS** - 无框架、无构建工具
-- **ES Modules** - 现代化模块化开发
-- **chrome.* API** - alarms、storage、scripting、notifications、offscreen
+- Chrome 原生桌面通知
+- 扩展图标红色角标（99+）
+- 声音提醒（WAV 格式，通过 Offscreen 文档播放）
 
-## 🚀 快速安装
+### 动态页面抗噪声
 
-### 开发者模式安装
+自动过滤 React / Vue / Next.js 等 SPA 框架的水合数据、动态 CSS、CSRF token、CSP nonce 等每次都变但非用户可见的内容，避免误报。
 
-1. 打开 Chrome 浏览器，访问 `chrome://extensions/`
-2. 开启右上角的**"开发者模式"**
-3. 点击**"加载已解压的扩展程序"**
-4. 选择 `F:\GitHub\PageWhat` 目录
-5. 扩展安装完成，图标将出现在工具栏
+### 错误追踪
 
-### 验证安装
+- 每个任务独立记录错误日志，支持按任务筛选
+- 连续错误达到阈值自动暂停任务，避免无效请求
+- 错误类型标签化，快速定位问题
 
-- 访问 `chrome://extensions/` 确认 PageWhat 已启用
-- 点击扩展图标，应显示 Popup 界面
-- 右键扩展图标 → "选项"，应打开管理页面
+## 技术栈
 
-## 💻 日常开发指南
+**运行时**
 
-### 开发工作流
+- **Manifest V3** — Chrome 扩展最新标准
+- **纯原生 JS / HTML / CSS** — 无框架、无构建工具
+- **ES Modules** — 顶部静态 import
+- **chrome.\* API** — alarms / storage / scripting / notifications / offscreen
+
+**开发工具链**
+
+- **ESLint** — 代码规范检查（Manifest V3 专属规则）
+- **Prettier** — 代码格式化
+- **Jest** — 单元测试（jsdom 环境 + Chrome API mock）
+
+## 开发环境搭建
 
 ```bash
-# 1. 拉取最新代码
-git pull origin main
+# 1. 安装 Node.js >= 18
+node -v
 
-# 2. 修改代码
-# 编辑相应文件（background.js, popup/, options/, lib/ 等）
+# 2. 安装依赖
+npm install
 
-# 3. 重新加载扩展
-# 方法 A：访问 chrome://extensions/ → 点击 PageWhat 的"重新加载"按钮
-# 方法 B：使用快捷键 Ctrl+R（在 chrome://extensions/ 页面）
-
-# 4. 测试功能
-# - 测试 Popup：点击扩展图标
-# - 测试 Options：右键图标 → "选项" 或访问 chrome-extension://[ID]/options/options.html
-# - 测试后台逻辑：查看 Service Worker 控制台
-
-# 5. 调试完成后提交
-git add .
-git commit -m "feat: 描述你的修改"
-git push origin main
+# 3. 运行全量验证
+npm run validate
 ```
 
-### 热重载技巧
+## 安装扩展
 
-由于 Chrome 扩展不支持真正的热重载，推荐以下高效开发流程：
+1. 打开 Chrome，访问 `chrome://extensions/`
+2. 开启右上角 **"开发者模式"**
+3. 点击 **"加载已解压的扩展程序"**
+4. 选择本项目根目录
+5. 扩展图标出现在工具栏，安装完成
 
-1. **修改 Popup/Options 前端代码**
-   - 保存文件后，关闭并重新打开 Popup/Options 页面即可生效
-   - 如果在 DevTools 中，点击 DevTools 的重新加载按钮
-
-2. **修改 Service Worker (background.js)**
-   - 必须手动点击"重新加载"按钮
-   - 建议在 `chrome.alarms.onAlarm.addListener` 处添加 `console.log` 便于调试
-
-3. **修改 Content Script 或注入函数**
-   - 需要重新加载扩展并刷新测试页面
-
-### 添加新功能的标准流程
-
-1. **确定功能范围**
-   - 前端界面修改 → `popup/` 或 `options/`
-   - 后台逻辑修改 → `background.js` 或 `lib/`
-   - 新检查策略 → `lib/checker.js`
-
-2. **遵循消息协议**
-   - 所有前后端通信通过 `chrome.runtime.sendMessage` 完成
-   - 消息格式：`{ type: string, payload?: object }`
-   - 响应格式：`{ success: boolean, ...data }` 或 `{ success: false, error: string }`
-
-3. **更新文档**
-   - 修改消息协议 → 更新 `CLAUDE.md` 的"消息协议"章节
-   - 修改架构 → 更新 `CLAUDE.md` 的"架构"章节
-   - 添加新功能 → 更新本 README
-
-## 📁 项目结构
+## 项目结构
 
 ```
 PageWhat/
-├── manifest.json          # Manifest V3 配置（权限、入口、资源声明）
-├── background.js          # Service Worker 核心调度器
-├── lib/                  # 核心库（模块化）
-│   ├── storage.js        # chrome.storage.local CRUD 封装
-│   ├── alarm-manager.js  # chrome.alarms 生命周期管理
-│   ├── checker.js        # 检查引擎（Tab注入/Offscreen fetch 双策略）
-│   ├── diff.js           # 变化检测算法（SHA-256哈希 + diff）
-│   ├── notifier.js       # 通知调度（Chrome通知 + 角标 + 声音）
-│   └── utils.js          # 共享工具函数（ensureOffscreenDocument + truncate）
-├── offscreen/            # Offscreen 文档（DOM解析 + 音频播放）
+├── manifest.json              # Manifest V3 配置
+├── background.js              # Service Worker 核心调度
+├── package.json               # 开发依赖与脚本
+├── jest.config.cjs            # Jest 测试配置
+├── .eslintrc.json             # ESLint 规则
+├── .prettierrc.json           # Prettier 格式化配置
+├── .gitignore                 # Git 忽略规则
+├── .gitattributes             # Git 属性（LF 归一化）
+├── LICENSE                    # Apache License 2.0
+├── verify.js                  # 文件完整性验证脚本
+├── lib/
+│   ├── storage.js             # chrome.storage.local CRUD 封装
+│   ├── alarm-manager.js       # chrome.alarms 生命周期管理
+│   ├── checker.js             # 检查引擎（Tab 注入 / Offscreen fetch / Open Tab）
+│   ├── diff.js                # 变化检测算法（SHA-256 + 文本/结构/关键词 diff）
+│   ├── notifier.js            # 通知调度（Chrome 通知 + 角标 + 声音）
+│   └── utils.js               # 共享工具（ensureOffscreenDocument + truncate）
+├── offscreen/
 │   ├── offscreen.html
-│   └── offscreen.js
-├── popup/                # 弹出窗口（快速添加监控）
+│   └── offscreen.js           # Offscreen 文档（DOM 解析 + 音频播放）
+├── popup/
 │   ├── popup.html
-│   ├── popup.js
+│   ├── popup.js               # 快速添加监控、任务列表
 │   └── popup.css
-├── options/              # 管理面板（任务管理 + 变化记录）
+├── options/
 │   ├── options.html
-│   ├── options.js
+│   ├── options.js             # 管理面板（任务 / 变化 / 错误 / 设置 + diff 引擎）
 │   └── options.css
-├── assets/               # 静态资源
-│   ├── icons/            # 扩展图标（16/48/128）
-│   └── sounds/           # 提示音（alert.wav）
-└── CLAUDE.md             # 项目开发指南（AI 助手用）
+└── assets/
+    ├── icons/                 # 扩展图标（16 / 48 / 128）
+    └── sounds/                # alert.wav 提示音
 ```
 
-## 🏗️ 核心架构
+## 开发命令
+
+| 命令                    | 说明                             |
+| ----------------------- | -------------------------------- |
+| `npm run lint`          | ESLint 代码检查                  |
+| `npm run lint:fix`      | ESLint 自动修复                  |
+| `npm run format`        | Prettier 格式化所有文件          |
+| `npm run format:check`  | 检查格式是否合规                 |
+| `npm run test`          | 运行单元测试                     |
+| `npm run test:watch`    | 监听模式                         |
+| `npm run test:coverage` | 生成覆盖率报告                   |
+| `npm run validate`      | 全量验证（lint + format + test） |
+
+## 核心架构
 
 ### 数据流
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  用户界面 (Popup / Options)                                │
-│  - 添加/编辑/删除任务                                      │
-│  - 查看变化历史                                           │
-│  - 手动触发检查                                           │
-└───────────────────┬─────────────────────────────────────────┘
-                    │ chrome.runtime.sendMessage
-                    ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Service Worker (background.js)                            │
-│  - 消息路由（根据 type 分发到对应 handler）                 │
-│  - 任务 CRUD（通过 storage.js）                            │
-│  - Alarm 调度（通过 alarm-manager.js）                     │
-└───────────────────┬─────────────────────────────────────────┘
-                    │ chrome.alarms.onAlarm
-                    ▼
-┌─────────────────────────────────────────────────────────────┐
-│  检查引擎 (lib/checker.js)                                │
-│  - 策略1: Tab 注入（保留登录态）                           │
-│  - 策略2: Offscreen fetch（无需 Tab）                      │
-│  - 策略3: Open Tab（SPA 渲染等待）                        │
-└───────────────────┬─────────────────────────────────────────┘
-                    │ 提取内容 → 哈希比对
-                    ▼
-┌─────────────────────────────────────────────────────────────┐
-│  变化检测 (lib/diff.js)                                    │
-│  - SHA-256 哈希快速比对                                    │
-│  - 文本级 diff（LCS token 算法）                           │
-│  - 结构级 diff（归一化 HTML 标签比对）                      │
-│  - 关键词搜索                                              │
-└───────────────────┬─────────────────────────────────────────┘
-                    │ 检测到变化
-                    ▼
-┌─────────────────────────────────────────────────────────────┐
-│  通知调度 (lib/notifier.js)                                │
-│  - Chrome 通知（chrome.notifications.create）               │
-│  - 图标角标（badge 文字 + 背景色）                         │
-│  - 声音提醒（通过 Offscreen 文档播放 WAV）                  │
-└─────────────────────────────────────────────────────────────┘
+Popup / Options --sendMessage--> Service Worker --alarm--> Checker
+                                     |                        |
+                                     |                   提取内容 + 哈希比对
+                                     |                        |
+                                     |                   检测到变化
+                                     |                        v
+                                     |                     Diff Engine
+                                     |                        |
+                                     <-------- changeRecord <--'
+                                     |
+                                     v
+                                 Notifier
+                           .---------+---------.
+                          通知      角标      声音
 ```
+
+### 双 Diff 引擎
+
+|          | lib/diff.js                      | options.js                   |
+| -------- | -------------------------------- | ---------------------------- |
+| **用途** | 后台检测（轻量）                 | 前端展示（精确）             |
+| **算法** | 段落级 textDiff、标签级 htmlDiff | Buzhash CDC + LCS token diff |
+| **适用** | 快速判断"是否变化"               | 完整展示"哪里变了"           |
+
+#### Buzhash 内容定义分块（CDC）
+
+大文本直接做 LCS 的时间 / 空间复杂度为 O(n²)，不可行。解决方案：
+
+1. **Buzhash 滚动哈希**将文本按内容自动分块（相同文本片段无论出现在哪里，分块边界一致）
+2. **分块级 LCS** — 将大量 token 缩减为少量分块，O(n²) 完全可接受
+3. **细粒度精化** — 对变化的分块对再做 token 级 LCS，得到精确的词级 diff
+4. 65536 项查找表 + `Uint16Array` 滑动窗口，完整支持 CJK 字符
+
+### 检查策略选择
+
+```
+Auto 模式流程：
+Tab 注入（查找已打开的匹配标签页）
+  | 失败或无匹配 Tab
+  v
+Offscreen fetch（后台 fetch + DOMParser 解析）
+  | 返回 SPA 空壳（文本 < 300 字符 + SPA 标记）
+  v
+Open Tab（打开后台标签页 -> 等待 JS 渲染 -> 提取 -> 关闭）
+```
+
+SPA 空壳检测（仅无 selector 时生效）：文本 < 300 字符时，依次检查 HTML 大小（< 2KB 为简短页面）、SPA 框架挂载点（`id="root"` / `id="__next"` 等）、script 标签数量（>3 为 SPA）、HTML 体积（>10KB 大概率为 SPA）；文本 < 800 字符时额外检查 `__NEXT_DATA__` / `window.__INITIAL_STATE__` 等框架水合标记。使用 selector 时信任提取结果，不做 SPA 空壳判断。
+
+### 消息路由
+
+`chrome.runtime.sendMessage` 会广播到所有监听器（包括 Service Worker 和 Offscreen 文档）。为避免响应竞争：
+
+- **FETCH_AND_EXTRACT / PLAY_SOUND** — Service Worker 返回 `false`（不响应），由 Offscreen 文档处理
+- **其余消息** — Service Worker 返回 `true`（异步响应），统一由 `handleMessage` 处理
 
 ### 关键数据结构
 
 **Task（监控任务）**
+
 ```javascript
 {
-  id: string,              // 唯一标识（时间戳）
-  name: string,            // 任务名称
-  url: string,            // 监控网址
-  selector: string | null, // CSS 选择器（可选）
-  monitorType: 'text' | 'structure' | 'keyword', // 监控类型
-  keywords: string[],      // 关键词列表（keyword 模式）
-  intervalMinutes: number, // 检查间隔（分钟）
-  isActive: boolean,       // 是否启用
-  lastChecked: number,     // 上次检查时间戳
-  lastSnapshot: Snapshot,  // 上次快照
-  errorCount: number,      // 连续错误次数
-  lastError: string | null,// 上次错误信息
-  createdAt: number       // 创建时间戳
+  id, name, url, selector,           // 基本信息
+  monitorType, keywords[],           // text | structure | keyword
+  intervalMinutes, isActive,         // 调度
+  lastChecked, lastSnapshot,         // 状态
+  errorCount, lastError,             // 错误追踪
+  createdAt
 }
 ```
 
 **ChangeRecord（变化记录）**
+
 ```javascript
 {
-  id: string,
-  taskId: string,
-  changeType: 'text' | 'structure' | 'keyword',
-  oldSnapshot: Snapshot,
-  newSnapshot: Snapshot,
-  diff: string,           // diff 结果（HTML 格式）
-  keywordsMatched: string[], // 匹配的关键词
-  detectedAt: number,     // 检测时间戳
-  isRead: boolean         // 是否已读
+  id, taskId, changeType,            // text_change | structure_change | keyword_found
+  oldSnapshot, newSnapshot,          // { text, html, hash, timestamp }
+  diff, keywordsMatched[],
+  detectedAt, isRead
 }
 ```
 
-**Snapshot（快照）**
+**ErrorRecord（错误记录）**
+
 ```javascript
 {
-  text: string,           // 提取的文本内容
-  html: string,           // 提取的 HTML 内容
-  hash: string,           // SHA-256 哈希值
-  timestamp: number       // 快照时间戳
+  id,
+  taskId,
+  errorType,
+  errorMessage,
+  url,
+  timestamp
 }
 ```
 
-## 🐛 调试技巧
+### Storage 布局
 
-### 调试 Service Worker
+`chrome.storage.local` 五个 key：
 
-1. 访问 `chrome://extensions/`
-2. 找到 PageWhat，点击 **"Service Worker"** 链接
-3. 打开 DevTools Console，查看 `console.log` 输出
+| Key          | 类型                           | 说明         |
+| ------------ | ------------------------------ | ------------ |
+| `tasks`      | `{ [taskId]: Task }`           | 所有监控任务 |
+| `history`    | `{ [taskId]: ChangeRecord[] }` | 变化记录     |
+| `errors`     | `{ [taskId]: ErrorRecord[] }`  | 错误日志     |
+| `settings`   | 合并 DEFAULT_SETTINGS          | 配置         |
+| `badgeCount` | `number`                       | 未读角标数   |
 
-**常用调试断点：**
+**默认配置（DEFAULT_SETTINGS）**
+
+| 配置项                    | 默认值 | 说明                       |
+| ------------------------- | ------ | -------------------------- |
+| `defaultIntervalMinutes`  | `5`    | 默认检查间隔（分钟）       |
+| `enableNotifications`     | `true` | 启用 Chrome 桌面通知       |
+| `enableBadge`             | `true` | 启用扩展图标角标           |
+| `enableSound`             | `true` | 启用声音提醒               |
+| `soundVolume`             | `0.7`  | 提示音音量（0-1）          |
+| `maxHistoryPerTask`       | `100`  | 每个任务最多保留的历史记录 |
+| `checkMethod`             | `auto` | 默认检查方式               |
+| `maxConcurrentChecks`     | `3`    | 最大并发检查数             |
+| `autoDisableOnErrorCount` | `5`    | 连续错误达此数自动暂停任务 |
+| `maxErrorsPerTask`        | `50`   | 每个任务最多保留的错误记录 |
+
+`saveCheckResult()` 原子写入 tasks + history，避免 Service Worker 中途终止导致数据不一致。`deleteTask()` 同时删除关联的 history 和 errors。历史记录按 `maxHistoryPerTask` 自动裁剪（保留最新记录），错误记录按 `maxErrorsPerTask` 自动裁剪。
+
+## 页面内高亮
+
+点击变化记录的 **"在页面中显示"** 按钮：
+
+1. 打开 / 切换到目标页面（不 reload，保留当前页面状态）
+2. 注入自包含高亮脚本，标记变化位置
+3. 顶部浮动工具栏提供导航和完整对比面板
+
+| 标记              | 说明                 |
+| ----------------- | -------------------- |
+| 绿色底色 + 下划线 | 新增文本             |
+| 红色删除线区块    | 已删除内容（可折叠） |
+| 橙色高亮          | 关键词匹配           |
+| 蓝色虚线边框      | 被监控元素范围       |
+
+工具栏功能：上一个 / 下一个导航 → 查看完整对比面板 → 清除标记。
+
+## 数据导出
+
+Options 页面设置标签页提供 **导出历史** 功能，将全部变化记录导出为 JSON 文件（`pagewhat-history-YYYY-MM-DD.json`）。
+
+## 消息协议
+
+所有消息格式：`{ type: string, payload?: object }`
+
+响应：`{ success: boolean, ...data }` 或 `{ success: false, error: string }`
+
+| 消息类型                    | 说明                                     |
+| --------------------------- | ---------------------------------------- |
+| `ADD_TASK`                  | 添加监控任务                             |
+| `UPDATE_TASK`               | 更新任务                                 |
+| `DELETE_TASK`               | 删除任务                                 |
+| `PAUSE_TASK`                | 暂停任务                                 |
+| `RESUME_TASK`               | 恢复任务                                 |
+| `CHECK_NOW`                 | 立即检查                                 |
+| `GET_TASKS`                 | 获取所有任务                             |
+| `GET_TASK`                  | 获取单个任务                             |
+| `GET_HISTORY`               | 获取任务变化记录                         |
+| `GET_ALL_HISTORY`           | 获取全部变化记录                         |
+| `MARK_READ`                 | 标记已读                                 |
+| `MARK_ALL_READ`             | 全部标记已读                             |
+| `CLEAR_HISTORY`             | 清除任务历史                             |
+| `CLEAR_ALL_HISTORY`         | 清除全部历史                             |
+| `GET_ERRORS`                | 获取任务错误                             |
+| `GET_ALL_ERRORS`            | 获取全部错误                             |
+| `GET_ERROR_COUNTS_BY_TASK`  | 按任务统计错误数                         |
+| `CLEAR_ERRORS`              | 清除任务错误                             |
+| `CLEAR_ALL_ERRORS`          | 清除全部错误                             |
+| `GET_SETTINGS`              | 获取设置                                 |
+| `UPDATE_SETTINGS`           | 更新设置                                 |
+| `GET_UNREAD_COUNT`          | 获取未读数                               |
+| `GET_UNREAD_COUNTS_BY_TASK` | 按任务统计未读数                         |
+| `RESET_BADGE`               | 重置角标                                 |
+| `FETCH_AND_EXTRACT`         | Offscreen fetch（由 Offscreen 文档响应） |
+| `PLAY_SOUND`                | 播放提示音（由 Offscreen 文档响应）      |
+
+## Manifest V3 开发注意事项
+
+### 禁止动态 import()
+
+Service Worker 中只能用顶部静态 `import`。
+
 ```javascript
-// 在 background.js 中
-chrome.alarms.onAlarm.addListener((alarm) => {
-  console.log('[DEBUG] Alarm triggered:', alarm); // 添加此行
-  // ...
-});
+// 正确
+import Storage from './lib/storage.js';
 
-// 在 checker.js 中
-async performCheck(taskId) {
-  console.log('[DEBUG] Checking task:', taskId); // 添加此行
-  // ...
-}
+// 会报错
+const Storage = await import('./lib/storage.js');
 ```
 
-### 调试 Popup
+### 禁止内联事件处理器
 
-1. 点击扩展图标打开 Popup
-2. 右键 Popup 区域 → **"检查"**
-3. 打开 DevTools 进行调试
+CSP 禁止 `onclick="..."` 等，使用 `addEventListener` 或事件委托（`data-*` + 父元素监听）。
 
-**注意：** Popup 会在失去焦点时关闭，调试时保持 DevTools 焦点。
+### 禁止内联 style 属性
 
-### 调试 Options 页面
+`style="display:none"` 触发 CSP 违规，用 CSS `.hidden` 类 + `classList` 代替。
 
-1. 访问 `chrome://extensions/`
-2. 找到 PageWhat，点击 **"详情"**
-3. 点击 **"扩展程序选项"** 链接
-4. 打开 DevTools 进行调试
+### Service Worker 无 DOM
 
-### 调试 Content Script 注入函数
+DOM 解析和音频播放通过 Offscreen 文档完成。
 
-`chrome.scripting.executeScript` 的 `func` 参数必须是**完全自包含**的，不能引用外部变量。
+### 自包含注入函数
 
-**正确示例：**
-```javascript
-// 在 checker.js 中定义自包含函数
-function extractContent(selector) {
-  // 函数体内部不能引用外部变量或函数
-  const text = selector
-    ? document.querySelector(selector)?.textContent || ''
-    : document.body.textContent;
-  return { text, html: document.body.innerHTML };
-}
+`chrome.scripting.executeScript` 的 `func` 参数必须是**完全自包含**的，不能引用闭包变量。项目中有两个这样的函数：
 
-// 注入执行
-await chrome.scripting.executeScript({
-  target: { tabId },
-  func: extractContent,
-  args: [selector]
-});
-```
+- `extractContent(selector)`（checker.js）— 提取目标页面 DOM 内容
+- `highlightOnPage(data)`（options.js）— 在页面上高亮显示变化
+
+## 调试
+
+### Service Worker
+
+`chrome://extensions/` -> 找到 PageWhat -> 点击 **"Service Worker"** -> 打开 DevTools Console。
+
+### Popup
+
+点击扩展图标打开 Popup -> 右键 Popup 区域 -> **"检查"**。
+
+> Popup 会在失去焦点时关闭，调试时保持 DevTools 焦点。
+
+### Options 页面
+
+`chrome://extensions/` -> 找到 PageWhat -> 点击 **"详情"** -> 点击 **"扩展程序选项"**。
 
 ### 查看存储数据
 
-在 Service Worker DevTools Console 中执行：
+在 Service Worker DevTools Console 中：
+
 ```javascript
 // 查看所有任务
-chrome.storage.local.get('tasks', (result) => console.log(result.tasks));
+chrome.storage.local.get('tasks', (r) => console.log(r.tasks));
 
 // 查看变化历史
-chrome.storage.local.get('history', (result) => console.log(result.history));
+chrome.storage.local.get('history', (r) => console.log(r.history));
 
-// 清空所有数据（慎用）
-chrome.storage.local.clear(() => console.log('Storage cleared'));
+// 查看错误日志
+chrome.storage.local.get('errors', (r) => console.log(r.errors));
 ```
 
-## ⚠️ Manifest V3 开发注意事项
+## 常见问题
 
-### 1. 禁止动态 `import()`
+### 修改代码后扩展没有更新？
 
-**问题：** Service Worker 中不能使用 `import()` 动态导入。
+Chrome 扩展不会自动热重载：
 
-**解决方案：** 所有模块必须在文件顶部静态导入。
+- 修改 Service Worker -> `chrome://extensions/` -> 点击"重新加载"
+- 修改 Popup / Options 前端 -> 关闭并重新打开即可
 
-```javascript
-// ✅ 正确：静态导入
-import { storage } from './lib/storage.js';
-import { checker } from './lib/checker.js';
+### Service Worker 频繁终止？
 
-// ❌ 错误：动态导入（会报错）
-const { storage } = await import('./lib/storage.js');
-```
+Manifest V3 的正常行为。确保：
 
-### 2. 禁止内联事件处理器
-
-**问题：** CSP 策略禁止 `onclick="..."` 等内联事件。
-
-**解决方案：** 使用 `addEventListener` 或事件委托。
-
-```html
-<!-- ❌ 错误：内联事件 -->
-<button onclick="addTask()">添加</button>
-
-<!-- ✅ 正确：addEventListener -->
-<button id="addBtn">添加</button>
-<script>
-  document.getElementById('addBtn').addEventListener('click', addTask);
-</script>
-
-<!-- ✅ 更好：事件委托（推荐） -->
-<div id="taskList">
-  <button data-action="edit" data-id="123">编辑</button>
-  <button data-action="delete" data-id="123">删除</button>
-</div>
-<script>
-  document.getElementById('taskList').addEventListener('click', (e) => {
-    const action = e.target.dataset.action;
-    const id = e.target.dataset.id;
-    if (action === 'edit') editTask(id);
-    if (action === 'delete') deleteTask(id);
-  });
-</script>
-```
-
-### 3. 禁止内联 style 属性
-
-**问题：** `style="display: none;"` 会触发 CSP 违规。
-
-**解决方案：** 使用 CSS 类 + `classList` 操作。
-
-```html
-<!-- ❌ 错误：内联 style -->
-<div id="errorMsg" style="display: none;">错误信息</div>
-
-<!-- ✅ 正确：CSS 类 -->
-<style>
-  .hidden { display: none; }
-</style>
-<div id="errorMsg" class="hidden">错误信息</div>
-<script>
-  document.getElementById('errorMsg').classList.remove('hidden');
-</script>
-```
-
-### 4. Service Worker 无 DOM
-
-**问题：** Service Worker 无法访问 DOM，无法播放音频。
-
-**解决方案：** 使用 Offscreen 文档。
-
-```javascript
-// 在 background.js 中
-async function playSound() {
-  await utils.ensureOffscreenDocument('offscreen/offscreen.html');
-  await chrome.runtime.sendMessage({
-    type: 'PLAY_SOUND',
-    payload: { src: 'assets/sounds/alert.wav' }
-  });
-}
-
-// 在 offscreen/offscreen.js 中
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === 'PLAY_SOUND') {
-    const audio = new Audio(message.payload.src);
-    audio.play();
-  }
-});
-```
-
-## ❓ 常见问题
-
-### Q1: 修改代码后扩展没有更新？
-
-**A:** Chrome 扩展不会自动热重载，需要手动重新加载：
-1. 访问 `chrome://extensions/`
-2. 找到 PageWhat，点击**"重新加载"**按钮
-3. 如果是修改 Popup/Options 前端，关闭并重新打开即可
-
-### Q2: Service Worker 频繁终止怎么办？
-
-**A:** 这是 Manifest V3 的正常行为。Service Worker 在不活动时会被终止以节省资源。确保：
-- 使用 `chrome.alarms` 进行定时任务（而非 `setInterval`）
-- 异步操作使用 `await` 或返回 Promise，避免中途终止
+- 用 `chrome.alarms` 做定时任务（而非 `setInterval`）
 - 关键数据及时保存到 `chrome.storage.local`
 
-### Q3: 为什么 Tab 注入模式失败？
+### Tab 注入模式失败？
 
-**A:** 可能原因：
-- 目标网页的 URL 与 `host_permissions` 不匹配
-- 目标网页使用 SPA 框架，需要等待 JS 渲染完成
+可能原因：
+
 - 目标网页有 CSP 策略阻止脚本注入
+- 解决：切换到 `fetch` 或 `openTab` 模式
 
-**解决方案：**
-- 检查 `manifest.json` 的 `host_permissions` 是否包含目标网址
-- 切换到 `offscreen` 模式或 `openTab` 模式
-- 查看 Service Worker Console 的错误信息
+### 声音无法播放？
 
-### Q4: 如何调试 Offscreen 文档？
+- 音频文件必须为 WAV 格式（路径 `assets/sounds/alert.wav`）
+- Offscreen 文档需正确加载
+- 检查浏览器 / 系统是否静音
 
-**A:** Offscreen 文档没有界面，调试方法：
-1. 在 `offscreen/offscreen.js` 中添加 `console.log`
-2. 在 Service Worker 中调用 `ensureOffscreenDocument`
-3. 查看 Chrome 的任务管理器（`Shift+Esc`），找到 Offscreen 进程
-4. 右键进程 → **"转到"** → 打开 DevTools
+## 许可证
 
-### Q5: 为什么声音无法播放？
-
-**A:** 确保：
-- 音频文件格式为 WAV（MP3 可能不支持）
-- 音频文件路径正确（`assets/sounds/alert.wav`）
-- Offscreen 文档已正确加载
-- 没有浏览器静音或系统静音
-
-### Q6: 如何导出/导入任务配置？
-
-**A:** 目前需要手动操作：
-1. 在 Service Worker Console 中执行：
-   ```javascript
-   chrome.storage.local.get('tasks', (result) => {
-     console.log(JSON.stringify(result.tasks, null, 2));
-   });
-   ```
-2. 复制输出的 JSON，保存到文件
-3. 导入时，在 Console 中执行：
-   ```javascript
-   const tasks = JSON.parse('你的JSON字符串');
-   chrome.storage.local.set({ tasks }, () => {
-     console.log('Tasks imported');
-   });
-   ```
-
-## 📄 许可证
-
-MIT License
-
-## 🤝 贡献指南
-
-欢迎提交 Issue 和 Pull Request！
-
-**提交代码前请确保：**
-- [ ] 代码符合 Manifest V3 规范
-- [ ] 无内联事件处理器和内联 style
-- [ ] 所有 `chrome.*` API 调用有错误处理
-- [ ] 新增消息类型已更新 `CLAUDE.md`
-- [ ] 测试了 Tab 注入和 Offscreen 两种模式
-
----
-
-**开发愉快！如有问题，请查看 `CLAUDE.md` 获取更详细的开发指南。**
+Apache License 2.0

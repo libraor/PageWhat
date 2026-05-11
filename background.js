@@ -17,10 +17,14 @@ import Notifier from './lib/notifier.js';
  */
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   const taskId = AlarmManager.extractTaskId(alarm.name);
-  if (!taskId) return;
+  if (!taskId) {
+    return;
+  }
 
   const task = await Storage.getTask(taskId);
-  if (!task || !task.isActive) return;
+  if (!task || !task.isActive) {
+    return;
+  }
 
   const result = await Checker.performCheck(task);
 
@@ -33,10 +37,14 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
  * 消息处理 - 来自 popup 和 options 页面
  */
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'FETCH_AND_EXTRACT' || message.type === 'PLAY_SOUND') {
+    return false;
+  }
+
   handleMessage(message, sender)
     .then(sendResponse)
-    .catch(error => sendResponse({ success: false, error: error.message }));
-  return true; // Keep channel open for async response
+    .catch((error) => sendResponse({ success: false, error: error.message }));
+  return true;
 });
 
 /**
@@ -66,7 +74,7 @@ chrome.notifications.onClicked.addListener(async (notificationId) => {
     const recordId = notificationId.slice('change-'.length);
     // Find the change record and open the task URL
     const allHistory = await Storage.getAllHistory();
-    const record = allHistory.find(r => r.id === recordId);
+    const record = allHistory.find((r) => r.id === recordId);
     if (record) {
       const task = await Storage.getTask(record.taskId);
       if (task) {
@@ -82,15 +90,7 @@ chrome.notifications.onClicked.addListener(async (notificationId) => {
 
 // ==================== Message Handler ====================
 
-async function handleMessage(message, sender) {
-  // Ignore messages intended for the offscreen document.
-  // chrome.runtime.sendMessage broadcasts to ALL listeners including this one.
-  // If we respond here (default case), our synchronous sendResponse beats the
-  // offscreen document's async response, breaking FETCH_AND_EXTRACT / PLAY_SOUND.
-  if (message.type === 'FETCH_AND_EXTRACT' || message.type === 'PLAY_SOUND') {
-    return; // Do NOT call sendResponse — let the offscreen document handle it
-  }
-
+async function handleMessage(message, _sender) {
   switch (message.type) {
     case 'ADD_TASK':
       return handleAddTask(message.payload);
@@ -182,7 +182,11 @@ async function handleAddTask(payload) {
   }
 
   // Block chrome:// and other restricted URLs
-  if (url.startsWith('chrome://') || url.startsWith('chrome-extension://') || url.startsWith('about:')) {
+  if (
+    url.startsWith('chrome://') ||
+    url.startsWith('chrome-extension://') ||
+    url.startsWith('about:')
+  ) {
     return { success: false, error: '无法监控浏览器内部页面' };
   }
 
@@ -202,7 +206,7 @@ async function handleAddTask(payload) {
     lastSnapshot: null,
     createdAt: new Date().toISOString(),
     errorCount: 0,
-    lastError: null
+    lastError: null,
   };
 
   await Storage.saveTask(task);
@@ -245,7 +249,9 @@ async function handleDeleteTask(taskId) {
 
 async function handlePauseTask(taskId) {
   const task = await Storage.getTask(taskId);
-  if (!task) return { success: false, error: '任务不存在' };
+  if (!task) {
+    return { success: false, error: '任务不存在' };
+  }
 
   task.isActive = false;
   await Storage.saveTask(task);
@@ -255,7 +261,9 @@ async function handlePauseTask(taskId) {
 
 async function handleResumeTask(taskId) {
   const task = await Storage.getTask(taskId);
-  if (!task) return { success: false, error: '任务不存在' };
+  if (!task) {
+    return { success: false, error: '任务不存在' };
+  }
 
   task.isActive = true;
   task.errorCount = 0;
@@ -267,7 +275,9 @@ async function handleResumeTask(taskId) {
 
 async function handleCheckNow(taskId) {
   const task = await Storage.getTask(taskId);
-  if (!task) return { success: false, error: '任务不存在' };
+  if (!task) {
+    return { success: false, error: '任务不存在' };
+  }
 
   const result = await Checker.performCheck(task);
 

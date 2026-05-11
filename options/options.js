@@ -4,7 +4,7 @@
 
 // ==================== DOM Elements ====================
 
-const $ = id => document.getElementById(id);
+const $ = (id) => document.getElementById(id);
 
 const dom = {
   // Tabs
@@ -55,10 +55,12 @@ const dom = {
   setMaxHistory: $('set-max-history'),
   btnExport: $('btn-export'),
   btnClearAllHistory: $('btn-clear-all-history'),
-  btnSaveSettings: $('btn-save-settings')
+  btnSaveSettings: $('btn-save-settings'),
 };
 
 let editingTaskId = null;
+let _changesLoading = false;
+let _errorsLoading = false;
 
 // ==================== Initialization ====================
 
@@ -74,20 +76,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ==================== Tab Navigation ====================
 
 function setupTabs() {
-  dom.tabs.forEach(tab => {
+  dom.tabs.forEach((tab) => {
     tab.addEventListener('click', () => {
-      dom.tabs.forEach(t => t.classList.remove('active'));
-      dom.tabContents.forEach(tc => tc.classList.remove('active'));
+      dom.tabs.forEach((t) => t.classList.remove('active'));
+      dom.tabContents.forEach((tc) => tc.classList.remove('active'));
 
       tab.classList.add('active');
       const tabId = `tab-${tab.dataset.tab}`;
       document.getElementById(tabId).classList.add('active');
 
       // Load data for the active tab
-      if (tab.dataset.tab === 'monitors') loadMonitorsTab();
-      if (tab.dataset.tab === 'changes') loadChangesTab();
-      if (tab.dataset.tab === 'errors') loadErrorsTab();
-      if (tab.dataset.tab === 'settings') loadSettings();
+      if (tab.dataset.tab === 'monitors') {
+        loadMonitorsTab();
+      }
+      if (tab.dataset.tab === 'changes') {
+        loadChangesTab();
+      }
+      if (tab.dataset.tab === 'errors') {
+        loadErrorsTab();
+      }
+      if (tab.dataset.tab === 'settings') {
+        loadSettings();
+      }
     });
   });
 }
@@ -106,7 +116,9 @@ function setupModal() {
 
   // Close modal on overlay click
   dom.modalOverlay.addEventListener('click', (e) => {
-    if (e.target === dom.modalOverlay) closeModal();
+    if (e.target === dom.modalOverlay) {
+      closeModal();
+    }
   });
 }
 
@@ -137,14 +149,18 @@ async function handleSaveTask() {
   const monitorType = dom.optType.value;
   const keywords = dom.optKeywords.value
     .split(',')
-    .map(k => k.trim())
-    .filter(k => k);
+    .map((k) => k.trim())
+    .filter((k) => k);
   const intervalMinutes = parseInt(dom.optInterval.value);
   const name = dom.optName.value.trim();
 
-  if (!url) return alert('请输入 URL');
+  if (!url) {
+    return alert('请输入 URL');
+  }
   // selector 可选，为空时监控整个页面
-  if (monitorType === 'keyword' && keywords.length === 0) return alert('请输入关键词');
+  if (monitorType === 'keyword' && keywords.length === 0) {
+    return alert('请输入关键词');
+  }
 
   try {
     let response;
@@ -158,13 +174,13 @@ async function handleSaveTask() {
           selector,
           monitorType,
           keywords,
-          intervalMinutes
-        }
+          intervalMinutes,
+        },
       });
     } else {
       response = await sendMessage({
         type: 'ADD_TASK',
-        payload: { name, url, selector, monitorType, keywords, intervalMinutes }
+        payload: { name, url, selector, monitorType, keywords, intervalMinutes },
       });
     }
 
@@ -187,7 +203,9 @@ async function handleSaveTask() {
 function setupTaskTableDelegation() {
   dom.taskTbody.addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-task-action]');
-    if (!btn) return;
+    if (!btn) {
+      return;
+    }
 
     const taskId = btn.dataset.taskId;
     const action = btn.dataset.taskAction;
@@ -204,6 +222,9 @@ function setupTaskTableDelegation() {
         break;
       case 'delete':
         await handleDeleteTask(taskId);
+        break;
+
+      default:
         break;
     }
   });
@@ -235,7 +256,9 @@ async function handleEditTask(taskId) {
 }
 
 async function handleDeleteTask(taskId) {
-  if (!confirm('确定删除此监控任务？相关历史记录也将被删除。')) return;
+  if (!confirm('确定删除此监控任务？相关历史记录也将被删除。')) {
+    return;
+  }
   await sendMessage({ type: 'DELETE_TASK', payload: { taskId } });
   await loadMonitorsTab();
 }
@@ -243,7 +266,9 @@ async function handleDeleteTask(taskId) {
 async function loadMonitorsTab() {
   try {
     const response = await sendMessage({ type: 'GET_TASKS' });
-    if (!response.success) return;
+    if (!response.success) {
+      return;
+    }
 
     const tasks = response.tasks;
     if (tasks.length === 0) {
@@ -256,11 +281,15 @@ async function loadMonitorsTab() {
 
     // Sort: active first
     tasks.sort((a, b) => {
-      if (a.isActive !== b.isActive) return b.isActive - a.isActive;
+      if (a.isActive !== b.isActive) {
+        return b.isActive - a.isActive;
+      }
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
-    dom.taskTbody.innerHTML = tasks.map(task => `
+    dom.taskTbody.innerHTML = tasks
+      .map(
+        (task) => `
       <tr>
         <td><span class="status-dot ${getStatusColor(task)}"></span></td>
         <td>${escapeHtml(task.name)}</td>
@@ -278,7 +307,9 @@ async function loadMonitorsTab() {
           </div>
         </td>
       </tr>
-    `).join('');
+    `
+      )
+      .join('');
   } catch (e) {
     console.error('Failed to load monitors:', e);
   }
@@ -287,13 +318,21 @@ async function loadMonitorsTab() {
 // ==================== Changes Tab ====================
 
 async function loadChangesTab() {
+  // Reentrancy guard: prevent recursive calls when innerHTML mutations
+  // on the filter <select> fire 'change' events that call us back.
+  if (_changesLoading) {
+    return;
+  }
+  _changesLoading = true;
   try {
     const [historyResp, tasksResp] = await Promise.all([
       sendMessage({ type: 'GET_ALL_HISTORY' }),
-      sendMessage({ type: 'GET_TASKS' })
+      sendMessage({ type: 'GET_TASKS' }),
     ]);
 
-    if (!historyResp.success) return;
+    if (!historyResp.success) {
+      return;
+    }
 
     // Populate filter dropdown
     if (tasksResp.success) {
@@ -313,24 +352,24 @@ async function loadChangesTab() {
     const unreadOnly = dom.filterUnread.checked;
 
     if (taskFilter !== 'all') {
-      records = records.filter(r => r.taskId === taskFilter);
+      records = records.filter((r) => r.taskId === taskFilter);
     }
 
     if (timeFilter === 'today') {
       const today = new Date().toISOString().slice(0, 10);
-      records = records.filter(r => r.detectedAt && r.detectedAt.startsWith(today));
+      records = records.filter((r) => r.detectedAt && r.detectedAt.startsWith(today));
     } else if (timeFilter === 'week') {
       const weekAgo = Date.now() - 7 * 86400000;
-      records = records.filter(r => r.detectedAt && new Date(r.detectedAt).getTime() > weekAgo);
+      records = records.filter((r) => r.detectedAt && new Date(r.detectedAt).getTime() > weekAgo);
     }
 
     if (unreadOnly) {
-      records = records.filter(r => !r.isRead);
+      records = records.filter((r) => !r.isRead);
     }
 
     if (records.length === 0) {
       dom.changesEmpty.classList.remove('hidden');
-      dom.changesList.querySelectorAll('.change-card').forEach(el => el.remove());
+      dom.changesList.querySelectorAll('.change-card').forEach((el) => el.remove());
       return;
     }
 
@@ -344,7 +383,7 @@ async function loadChangesTab() {
       }
     }
 
-    dom.changesList.querySelectorAll('.change-card').forEach(el => el.remove());
+    dom.changesList.querySelectorAll('.change-card').forEach((el) => el.remove());
 
     const fragment = document.createDocumentFragment();
     for (const record of records) {
@@ -353,6 +392,8 @@ async function loadChangesTab() {
     dom.changesList.appendChild(fragment);
   } catch (e) {
     console.error('Failed to load changes:', e);
+  } finally {
+    _changesLoading = false;
   }
 }
 
@@ -375,8 +416,12 @@ function createChangeCard(record, taskName) {
   // Type badge
   const typeDiv = document.createElement('div');
   typeDiv.className = 'change-type';
-  const typeClass = record.changeType === 'text_change' ? 'text'
-    : record.changeType === 'structure_change' ? 'structure' : 'keyword';
+  const typeClass =
+    record.changeType === 'text_change'
+      ? 'text'
+      : record.changeType === 'structure_change'
+        ? 'structure'
+        : 'keyword';
   const badge = document.createElement('span');
   badge.className = `type-badge ${typeClass}`;
   badge.textContent = getTypeLabel(record.changeType);
@@ -400,7 +445,12 @@ function createChangeCard(record, taskName) {
   if (record.changeType === 'text_change') {
     buildTextDiffPanel(diffPanel, record.oldSnapshot?.text, record.newSnapshot?.text);
   } else if (record.changeType === 'structure_change') {
-    buildStructureDiffPanel(diffPanel, record.oldSnapshot?.html, record.newSnapshot?.html, record.diff);
+    buildStructureDiffPanel(
+      diffPanel,
+      record.oldSnapshot?.html,
+      record.newSnapshot?.html,
+      record.diff
+    );
   } else if (record.changeType === 'keyword_found') {
     buildKeywordDiffPanel(diffPanel, record.newSnapshot?.text, record.keywordsMatched || []);
   }
@@ -441,7 +491,10 @@ function createChangeCard(record, taskName) {
     readBtn.className = 'btn btn-sm btn-secondary';
     readBtn.textContent = '标记已读';
     readBtn.addEventListener('click', async () => {
-      await sendMessage({ type: 'MARK_READ', payload: { recordId: record.id, taskId: record.taskId } });
+      await sendMessage({
+        type: 'MARK_READ',
+        payload: { recordId: record.id, taskId: record.taskId },
+      });
       await loadChangesTab();
     });
     actionsDiv.appendChild(readBtn);
@@ -457,9 +510,24 @@ function createChangeCard(record, taskName) {
 }
 
 // Setup changes filters
-dom.filterTask.addEventListener('change', () => loadChangesTab());
-dom.filterTime.addEventListener('change', () => loadChangesTab());
-dom.filterUnread.addEventListener('change', () => loadChangesTab());
+// _changesLoading prevents infinite recursion when innerHTML mutations
+// on the filter <select> fire 'change' events during loadChangesTab().
+dom.filterTask.addEventListener('change', () => {
+  if (_changesLoading) {
+    return;
+  }
+  loadChangesTab();
+});
+dom.filterTime.addEventListener('change', () => {
+  if (!_changesLoading) {
+    loadChangesTab();
+  }
+});
+dom.filterUnread.addEventListener('change', () => {
+  if (!_changesLoading) {
+    loadChangesTab();
+  }
+});
 dom.btnMarkAllRead.addEventListener('click', async () => {
   await sendMessage({ type: 'RESET_BADGE' });
   // Group unread records by taskId and call MARK_ALL_READ per task
@@ -481,13 +549,19 @@ dom.btnMarkAllRead.addEventListener('click', async () => {
 // ==================== Errors Tab ====================
 
 async function loadErrorsTab() {
+  if (_errorsLoading) {
+    return;
+  }
+  _errorsLoading = true;
   try {
     const [errorsResp, tasksResp] = await Promise.all([
       sendMessage({ type: 'GET_ALL_ERRORS' }),
-      sendMessage({ type: 'GET_TASKS' })
+      sendMessage({ type: 'GET_TASKS' }),
     ]);
 
-    if (!errorsResp.success) return;
+    if (!errorsResp.success) {
+      return;
+    }
 
     // Populate filter dropdown
     if (tasksResp.success) {
@@ -504,12 +578,12 @@ async function loadErrorsTab() {
     // Apply filter
     const taskFilter = dom.filterErrorTask.value;
     if (taskFilter !== 'all') {
-      records = records.filter(r => r.taskId === taskFilter);
+      records = records.filter((r) => r.taskId === taskFilter);
     }
 
     if (records.length === 0) {
       dom.errorsEmpty.classList.remove('hidden');
-      dom.errorsList.querySelectorAll('.error-card').forEach(el => el.remove());
+      dom.errorsList.querySelectorAll('.error-card').forEach((el) => el.remove());
       return;
     }
 
@@ -523,7 +597,7 @@ async function loadErrorsTab() {
       }
     }
 
-    dom.errorsList.querySelectorAll('.error-card').forEach(el => el.remove());
+    dom.errorsList.querySelectorAll('.error-card').forEach((el) => el.remove());
 
     const fragment = document.createDocumentFragment();
     for (const record of records) {
@@ -532,6 +606,8 @@ async function loadErrorsTab() {
     dom.errorsList.appendChild(fragment);
   } catch (e) {
     console.error('Failed to load errors:', e);
+  } finally {
+    _errorsLoading = false;
   }
 }
 
@@ -571,9 +647,16 @@ function createErrorCard(record, taskName) {
   return card;
 }
 
-dom.filterErrorTask.addEventListener('change', () => loadErrorsTab());
+dom.filterErrorTask.addEventListener('change', () => {
+  if (_errorsLoading) {
+    return;
+  }
+  loadErrorsTab();
+});
 dom.btnClearAllErrors.addEventListener('click', async () => {
-  if (!confirm('确定清除全部错误记录？')) return;
+  if (!confirm('确定清除全部错误记录？')) {
+    return;
+  }
   await sendMessage({ type: 'CLEAR_ALL_ERRORS' });
   await loadErrorsTab();
 });
@@ -590,7 +673,9 @@ function setupSettings() {
   dom.btnExport.addEventListener('click', handleExport);
 
   dom.btnClearAllHistory.addEventListener('click', async () => {
-    if (!confirm('确定清除全部历史记录？此操作不可恢复。')) return;
+    if (!confirm('确定清除全部历史记录？此操作不可恢复。')) {
+      return;
+    }
     const response = await sendMessage({ type: 'CLEAR_ALL_HISTORY' });
     if (response.success) {
       alert('历史记录已清除');
@@ -601,7 +686,9 @@ function setupSettings() {
 async function loadSettings() {
   try {
     const response = await sendMessage({ type: 'GET_SETTINGS' });
-    if (!response.success) return;
+    if (!response.success) {
+      return;
+    }
 
     const s = response.settings;
     dom.setDefaultInterval.value = s.defaultIntervalMinutes;
@@ -632,8 +719,8 @@ async function handleSaveSettings() {
         enableBadge: dom.setEnableBadge.checked,
         enableSound: dom.setEnableSound.checked,
         soundVolume: parseInt(dom.setSoundVolume.value) / 100,
-        maxHistoryPerTask: parseInt(dom.setMaxHistory.value)
-      }
+        maxHistoryPerTask: parseInt(dom.setMaxHistory.value),
+      },
     });
 
     if (response.success) {
@@ -647,9 +734,13 @@ async function handleSaveSettings() {
 async function handleExport() {
   try {
     const response = await sendMessage({ type: 'GET_ALL_HISTORY' });
-    if (!response.success) return;
+    if (!response.success) {
+      return;
+    }
 
-    const blob = new Blob([JSON.stringify(response.history, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(response.history, null, 2)], {
+      type: 'application/json',
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -666,7 +757,11 @@ async function handleExport() {
 function sendMessage(message) {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage(message, (response) => {
-      resolve(response || { success: false, error: 'No response' });
+      if (chrome.runtime.lastError) {
+        resolve({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        resolve(response || { success: false, error: 'No response' });
+      }
     });
   });
 }
@@ -691,8 +786,12 @@ function urlToMatchPattern(url) {
 }
 
 function getStatusColor(task) {
-  if (!task.isActive) return 'gray';
-  if (task.errorCount > 0) return 'red';
+  if (!task.isActive) {
+    return 'gray';
+  }
+  if (task.errorCount > 0) {
+    return 'red';
+  }
   return 'green';
 }
 
@@ -703,44 +802,57 @@ function getTypeLabel(type) {
     keyword: '关键词',
     text_change: '文本变化',
     structure_change: '结构变化',
-    keyword_found: '关键词'
+    keyword_found: '关键词',
   };
   return labels[type] || type;
 }
 
 function formatTime(isoString) {
-  if (!isoString) return '-';
+  if (!isoString) {
+    return '-';
+  }
   const date = new Date(isoString);
   const now = new Date();
   const diff = now - date;
 
-  if (diff < 60000) return '刚刚';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
-  if (diff < 172800000) return '昨天';
+  if (diff < 60000) {
+    return '刚刚';
+  }
+  if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)}分钟前`;
+  }
+  if (diff < 86400000) {
+    return `${Math.floor(diff / 3600000)}小时前`;
+  }
+  if (diff < 172800000) {
+    return '昨天';
+  }
 
   return date.toLocaleDateString('zh-CN', {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   });
 }
 
 // ==================== Diff Engine ====================
 
-const DIFF_MAX_TOKENS = 2000;   // 超过则降级为行级 diff
-const DIFF_CONTEXT_RADIUS = 30; // 变化区域前后保留的 token 数
-const DIFF_TRUNCATE_LEN = 6000; // 文本最大处理长度
+const DIFF_MAX_TOKENS = 2000; // LCS 单次输入 token 上限（超过用分块 diff）
+const DIFF_CONTEXT_RADIUS = 200; // 变化区域前后保留的 token 数
+const CHUNK_TARGET_SIZE = 512; // 内容分块目标大小（必须是 2 的幂）
 
 /**
  * 将文本分割为 token 数组
  * CJK 字符逐字、英文按单词、空白和标点各自分组
  */
 function tokenizeText(text) {
-  if (!text) return [];
+  if (!text) {
+    return [];
+  }
   const tokens = [];
-  const regex = /[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]|[a-zA-Z0-9]+|\s+|[^\s\w\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]+/g;
+  const regex =
+    /[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]|[a-zA-Z0-9]+|\s+|[^\s\w\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]+/g;
   let m;
   while ((m = regex.exec(text)) !== null) {
     tokens.push(m[0]);
@@ -752,7 +864,8 @@ function tokenizeText(text) {
  * LCS 动态规划表（Uint16Array 节省内存）
  */
 function computeLcsTable(a, b) {
-  const m = a.length, n = b.length;
+  const m = a.length,
+    n = b.length;
   const dp = new Array(m + 1);
   for (let i = 0; i <= m; i++) {
     dp[i] = new Uint16Array(n + 1);
@@ -774,12 +887,14 @@ function computeLcsTable(a, b) {
  */
 function backtrackLcs(dp, a, b) {
   const raw = [];
-  let i = a.length, j = b.length;
+  let i = a.length,
+    j = b.length;
 
   while (i > 0 || j > 0) {
     if (i > 0 && j > 0 && a[i - 1] === b[j - 1]) {
       raw.push({ type: 'equal', text: a[i - 1] });
-      i--; j--;
+      i--;
+      j--;
     } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
       raw.push({ type: 'added', text: b[j - 1] });
       j--;
@@ -804,7 +919,7 @@ function backtrackLcs(dp, a, b) {
 }
 
 /**
- * 简单行级 diff（大文本降级方案）
+ * 简单行级 diff（最终降级方案，仅当分块 diff 也无法处理时使用）
  */
 function computeSimpleLineDiff(oldText, newText) {
   const oldLines = oldText.split('\n');
@@ -817,49 +932,221 @@ function computeSimpleLineDiff(oldText, newText) {
     if (o === n) {
       segments.push({ type: 'equal', text: o + '\n' });
     } else {
-      if (o !== undefined) segments.push({ type: 'removed', text: o + '\n' });
-      if (n !== undefined) segments.push({ type: 'added', text: n + '\n' });
+      if (o !== undefined) {
+        segments.push({ type: 'removed', text: o + '\n' });
+      }
+      if (n !== undefined) {
+        segments.push({ type: 'added', text: n + '\n' });
+      }
     }
   }
   return segments;
 }
 
+// ==================== Content-Defined Chunking ====================
+
 /**
- * 计算前后对比 diff 段落
+ * Buzhash 查找表（确定性，使用固定种子）
+ * 使用 65536 项以支持完整 UTF-16 字符（中文等），
+ * 确保不同字符映射到不同的哈希值，提高分块区分度。
  */
-function computeDiffSegments(oldText, newText) {
-  if (!oldText && !newText) return [];
-  if (!oldText) return [{ type: 'added', text: newText }];
-  if (!newText) return [{ type: 'removed', text: oldText }];
+const BUZHASH_TABLE = new Uint32Array(65536);
+{
+  let seed = 0x12345678;
+  for (let i = 0; i < 65536; i++) {
+    seed = (Math.imul(seed, 0x5bd1e995) + i) >>> 0;
+    BUZHASH_TABLE[i] = seed;
+  }
+}
 
-  // 截断过长文本
-  const truncMark = '…[内容过长已截断]';
-  const oldT = oldText.length > DIFF_TRUNCATE_LEN
-    ? oldText.slice(0, DIFF_TRUNCATE_LEN) + truncMark : oldText;
-  const newT = newText.length > DIFF_TRUNCATE_LEN
-    ? newText.slice(0, DIFF_TRUNCATE_LEN) + truncMark : newText;
-
-  const oldTokens = tokenizeText(oldT);
-  const newTokens = tokenizeText(newT);
-
-  // token 过多则降级
-  if (oldTokens.length > DIFF_MAX_TOKENS || newTokens.length > DIFF_MAX_TOKENS) {
-    return computeSimpleLineDiff(oldT, newT);
+/**
+ * 内容定义分块（Content-Defined Chunking）
+ * 使用 Buzhash 滚动哈希，根据内容自动确定分块边界。
+ * 相同的文本片段无论出现在文本的什么位置，都会产生相同的分块边界。
+ *
+ * @param {string} text - 待分块文本
+ * @param {number} targetSize - 目标分块大小（必须是 2 的幂）
+ * @returns {string[]} 分块数组
+ */
+function cdChunk(text, targetSize) {
+  if (!text) {
+    return [];
+  }
+  if (text.length < targetSize) {
+    return [text];
   }
 
-  const dp = computeLcsTable(oldTokens, newTokens);
-  return backtrackLcs(dp, oldTokens, newTokens);
+  const WINDOW = 48;
+  const MIN_CHUNK = targetSize >> 1;
+  const MAX_CHUNK = targetSize * 3;
+  const MASK = targetSize - 1;
+
+  const chunks = [];
+  let start = 0;
+  let hash = 0;
+  const win = new Uint16Array(WINDOW);
+  let wp = 0,
+    wlen = 0;
+
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    const outC = wlen >= WINDOW ? win[wp] : 0;
+
+    // Buzhash: 左旋 → 异或出旧字符 → 异或入新字符
+    hash = ((hash << 1) | (hash >>> 31)) >>> 0;
+    if (wlen >= WINDOW) {
+      hash = (hash ^ BUZHASH_TABLE[outC]) >>> 0;
+    }
+    hash = (hash ^ BUZHASH_TABLE[c]) >>> 0;
+
+    // 更新滑动窗口
+    win[wp] = c;
+    wp = (wp + 1) % WINDOW;
+    if (wlen < WINDOW) {
+      wlen++;
+    }
+
+    // 检查分块边界
+    const chunkLen = i - start + 1;
+    if (chunkLen >= MIN_CHUNK && ((hash & MASK) === 0 || chunkLen >= MAX_CHUNK)) {
+      chunks.push(text.slice(start, i + 1));
+      start = i + 1;
+      hash = 0;
+      wlen = 0;
+      wp = 0;
+    }
+  }
+
+  if (start < text.length) {
+    chunks.push(text.slice(start));
+  }
+
+  return chunks.length > 0 ? chunks : [text];
+}
+
+/**
+ * 对相邻的 removed+added 分块对做细粒度 LCS 精化
+ * 将粗粒度的"整块删除+整块添加"转换为精确的 token 级 diff
+ */
+function refineChunkSegments(chunkSegs, depth = 0) {
+  const result = [];
+  let i = 0;
+
+  while (i < chunkSegs.length) {
+    const seg = chunkSegs[i];
+
+    if (seg.type === 'equal') {
+      result.push(seg);
+      i++;
+      continue;
+    }
+
+    // 收集连续的 removed 和 added 段
+    const removedTexts = [];
+    const addedTexts = [];
+
+    while (i < chunkSegs.length && chunkSegs[i].type === 'removed') {
+      removedTexts.push(chunkSegs[i].text);
+      i++;
+    }
+    while (i < chunkSegs.length && chunkSegs[i].type === 'added') {
+      addedTexts.push(chunkSegs[i].text);
+      i++;
+    }
+
+    if (removedTexts.length > 0 && addedTexts.length > 0) {
+      const removed = removedTexts.join('');
+      const added = addedTexts.join('');
+      const oldTokens = tokenizeText(removed);
+      const newTokens = tokenizeText(added);
+
+      if (oldTokens.length <= DIFF_MAX_TOKENS && newTokens.length <= DIFF_MAX_TOKENS) {
+        // 单次 LCS 可处理 → 精确 token 级 diff
+        const dp = computeLcsTable(oldTokens, newTokens);
+        result.push(...backtrackLcs(dp, oldTokens, newTokens));
+      } else if (depth < 1) {
+        // 递归做一次更细的分块 diff（限制递归深度为 1，防止无限递归）
+        result.push(...computeChunkedDiff(removed, added, depth + 1));
+      } else {
+        // 已达递归深度上限 → 降级为简单行级 diff，保证终止
+        result.push(...computeSimpleLineDiff(removed, added));
+      }
+    } else {
+      for (const t of removedTexts) {
+        result.push({ type: 'removed', text: t });
+      }
+      for (const t of addedTexts) {
+        result.push({ type: 'added', text: t });
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
+ * 分块 diff：内容定义分块 → 分块级 LCS → 细粒度精化
+ * 适用于大文本（token 数超过 DIFF_MAX_TOKENS），避免 O(n²) LCS 爆炸。
+ *
+ * 算法流程：
+ * 1. 将新旧文本分别做内容定义分块（cdChunk）
+ * 2. 以分块为 token 做 LCS，找出哪些分块变了
+ * 3. 对变化的分块对做 token 级 LCS，得到精确的词级 diff
+ */
+function computeChunkedDiff(oldText, newText, depth = 0) {
+  const oldChunks = cdChunk(oldText, CHUNK_TARGET_SIZE);
+  const newChunks = cdChunk(newText, CHUNK_TARGET_SIZE);
+
+  // 分块级 LCS（分块数通常 < 几百，O(n²) 完全可接受）
+  const dp = computeLcsTable(oldChunks, newChunks);
+  const chunkSegs = backtrackLcs(dp, oldChunks, newChunks);
+
+  // 对 removed+added 相邻段做细粒度精化
+  return refineChunkSegments(chunkSegs, depth);
+}
+
+/**
+ * 计算前后对比 diff 段落
+ * 小文本直接 LCS；大文本用内容定义分块 diff
+ */
+function computeDiffSegments(oldText, newText) {
+  if (!oldText && !newText) {
+    return [];
+  }
+  if (!oldText) {
+    return [{ type: 'added', text: newText }];
+  }
+  if (!newText) {
+    return [{ type: 'removed', text: oldText }];
+  }
+
+  const oldTokens = tokenizeText(oldText);
+  const newTokens = tokenizeText(newText);
+
+  // token 数在限制内 → 直接 LCS（最快最精确）
+  if (oldTokens.length <= DIFF_MAX_TOKENS && newTokens.length <= DIFF_MAX_TOKENS) {
+    const dp = computeLcsTable(oldTokens, newTokens);
+    return backtrackLcs(dp, oldTokens, newTokens);
+  }
+
+  // 大文本 → 内容定义分块 diff
+  return computeChunkedDiff(oldText, newText);
 }
 
 /**
  * 从 diff 段落中提取变化区域（含上下文），中间用省略号连接
+ * @returns {{ segments: Array, hasEllipsis: boolean }}
  */
 function extractChangeRegions(segments) {
   const changeIdx = [];
   for (let i = 0; i < segments.length; i++) {
-    if (segments[i].type !== 'equal') changeIdx.push(i);
+    if (segments[i].type !== 'equal') {
+      changeIdx.push(i);
+    }
   }
-  if (changeIdx.length === 0) return segments;
+  if (changeIdx.length === 0) {
+    return { segments, hasEllipsis: false };
+  }
 
   // 合并重叠的可见范围
   const ranges = [];
@@ -873,15 +1160,22 @@ function extractChangeRegions(segments) {
     }
   }
 
+  let hasEllipsis = false;
   const result = [];
   for (let i = 0; i < ranges.length; i++) {
-    if (i > 0 || ranges[i].start > 0) result.push({ type: 'ellipsis' });
-    for (let j = ranges[i].start; j <= ranges[i].end; j++) result.push(segments[j]);
+    if (i > 0 || ranges[i].start > 0) {
+      result.push({ type: 'ellipsis' });
+      hasEllipsis = true;
+    }
+    for (let j = ranges[i].start; j <= ranges[i].end; j++) {
+      result.push(segments[j]);
+    }
   }
   if (ranges[ranges.length - 1].end < segments.length - 1) {
     result.push({ type: 'ellipsis' });
+    hasEllipsis = true;
   }
-  return result;
+  return { segments: result, hasEllipsis };
 }
 
 /**
@@ -902,12 +1196,12 @@ function renderDiffHtml(segments, side) {
       html += `<mark class="diff-removed">${escapeHtml(seg.text)}</mark>`;
     } else if (seg.type === 'removed' && side === 'after') {
       // 在"变更后"侧显示删除占位符，让用户知道这里曾有内容被删除
-      html += `<span class="diff-deleted-marker" title="已删除的内容">${escapeHtml(seg.text.length > 50 ? seg.text.slice(0, 50) + '…' : seg.text)}</span>`;
+      html += `<span class="diff-deleted-marker" title="已删除的内容">${escapeHtml(seg.text.length > 200 ? seg.text.slice(0, 200) + '…' : seg.text)}</span>`;
     } else if (seg.type === 'added' && side === 'after') {
       html += `<mark class="diff-added">${escapeHtml(seg.text)}</mark>`;
     } else if (seg.type === 'added' && side === 'before') {
       // 在"变更前"侧显示新增占位符
-      html += `<span class="diff-added-marker" title="此处新增了内容">[+]</span>`;
+      html += '<span class="diff-added-marker" title="此处新增了内容">[+]</span>';
     }
   }
   return html || '<span class="diff-ellipsis">（无差异）</span>';
@@ -928,22 +1222,55 @@ function buildTextDiffPanel(panel, oldText, newText) {
   }
 
   const segments = computeDiffSegments(oldText, newText);
-  const regions = extractChangeRegions(segments);
-  const beforeHtml = renderDiffHtml(regions, 'before');
-  const afterHtml = renderDiffHtml(regions, 'after');
+  const { segments: initialRegions, hasEllipsis } = extractChangeRegions(segments);
+
+  // 渲染函数：isExpanded=true 显示全部，false 只显示变化区域
+  function render(isExpanded) {
+    const displaySegs = isExpanded ? segments : extractChangeRegions(segments).segments;
+    return {
+      before: renderDiffHtml(displaySegs, 'before'),
+      after: renderDiffHtml(displaySegs, 'after'),
+    };
+  }
+
+  const initial = {
+    before: renderDiffHtml(initialRegions, 'before'),
+    after: renderDiffHtml(initialRegions, 'after'),
+  };
 
   const grid = document.createElement('div');
   grid.className = 'diff-grid';
+
+  // 工具栏（含切换按钮）
+  const toolbar = document.createElement('div');
+  toolbar.className = 'diff-toolbar';
+  if (hasEllipsis) {
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'btn btn-sm btn-secondary diff-toggle';
+    toggleBtn.textContent = '显示完整差异';
+    let expanded = false;
+    toggleBtn.addEventListener('click', () => {
+      expanded = !expanded;
+      const html = render(expanded);
+      grid.querySelector('.diff-column-before .diff-content').innerHTML = html.before;
+      grid.querySelector('.diff-column-after .diff-content').innerHTML = html.after;
+      toggleBtn.textContent = expanded ? '只显示变化区域' : '显示完整差异';
+    });
+    toolbar.appendChild(toggleBtn);
+  }
+
   grid.innerHTML = `
-    <div class="diff-column">
+    <div class="diff-column diff-column-before">
       <div class="diff-label">变更前</div>
-      <div class="diff-content">${beforeHtml}</div>
+      <div class="diff-content">${initial.before}</div>
     </div>
-    <div class="diff-column">
+    <div class="diff-column diff-column-after">
       <div class="diff-label">变更后</div>
-      <div class="diff-content">${afterHtml}</div>
+      <div class="diff-content">${initial.after}</div>
     </div>
   `;
+
+  panel.appendChild(toolbar);
   panel.appendChild(grid);
 }
 
@@ -968,7 +1295,7 @@ function buildStructureDiffPanel(panel, oldHtml, newHtml, summary) {
 
   if (oldTags || newTags) {
     const segments = computeDiffSegments(oldTags, newTags);
-    const regions = extractChangeRegions(segments);
+    const { segments: regions } = extractChangeRegions(segments);
     const beforeHtml = renderDiffHtml(regions, 'before');
     const afterHtml = renderDiffHtml(regions, 'after');
 
@@ -1008,7 +1335,7 @@ function buildKeywordDiffPanel(panel, text, keywords) {
   for (const kw of keywords) {
     const escapedKw = escapeHtml(kw);
     const regex = new RegExp(escapeRegExp(escapedKw), 'gi');
-    highlighted = highlighted.replace(regex, `<mark class="diff-keyword">$&</mark>`);
+    highlighted = highlighted.replace(regex, '<mark class="diff-keyword">$&</mark>');
   }
 
   const col = document.createElement('div');
@@ -1026,7 +1353,9 @@ function buildKeywordDiffPanel(panel, text, keywords) {
  * 提取 HTML 开标签，按行排列（用于结构 diff）
  */
 function extractTagLines(html) {
-  if (!html) return '';
+  if (!html) {
+    return '';
+  }
   const tags = html.match(/<[\w][^>]*>/g);
   return tags ? tags.join('\n') : '';
 }
@@ -1035,25 +1364,37 @@ function extractTagLines(html) {
  * 截取关键词附近上下文片段
  */
 function extractKeywordSnippet(text, keywords, maxLen) {
-  if (!text || text.length <= maxLen) return text;
+  if (!text || text.length <= maxLen) {
+    return text;
+  }
 
   const positions = [];
   for (const kw of keywords) {
     const idx = text.toLowerCase().indexOf(kw.toLowerCase());
-    if (idx >= 0) positions.push(idx);
+    if (idx >= 0) {
+      positions.push(idx);
+    }
   }
-  if (positions.length === 0) return text.slice(0, maxLen) + '…';
+  if (positions.length === 0) {
+    return text.slice(0, maxLen) + '…';
+  }
 
   const center = positions[0];
   const halfLen = Math.floor(maxLen / 2);
   let start = Math.max(0, center - halfLen);
-  let end = Math.min(text.length, start + maxLen);
-  if (end - start < maxLen) start = Math.max(0, end - maxLen);
+  const end = Math.min(text.length, start + maxLen);
+  if (end - start < maxLen) {
+    start = Math.max(0, end - maxLen);
+  }
 
   let snippet = '';
-  if (start > 0) snippet += '…';
+  if (start > 0) {
+    snippet += '…';
+  }
   snippet += text.slice(start, end);
-  if (end < text.length) snippet += '…';
+  if (end < text.length) {
+    snippet += '…';
+  }
   return snippet;
 }
 
@@ -1068,7 +1409,11 @@ function escapeRegExp(string) {
 
 /**
  * 在目标页面中高亮显示变化
- * 点击后：打开/切换到目标页面 → 注入高亮脚本
+ * 核心策略：
+ * 1. 打开/切换到目标页面，不 reload（保留当前页面状态）
+ * 2. 传入完整的快照数据，让注入函数自行渲染完整对比
+ * 3. 在页面上方注入一个完整的可视化对比面板（浮动面板）
+ * 4. 同时在页面 DOM 中尝试标记新增内容
  */
 async function handleViewOnPage(record) {
   // 1. Get task data
@@ -1079,34 +1424,25 @@ async function handleViewOnPage(record) {
   }
   const task = taskResp.task;
 
-  // 2. Compute diff data for injection
-  const diffData = {};
-  if (record.changeType === 'text_change') {
-    const segments = computeDiffSegments(
-      record.oldSnapshot?.text || '',
-      record.newSnapshot?.text || ''
-    );
-    diffData.addedChunks = segments
-      .filter(s => s.type === 'added')
-      .map(s => s.text)
-      .filter(t => t.trim());
-    diffData.removedChunks = segments
-      .filter(s => s.type === 'removed')
-      .map(s => s.text)
-      .filter(t => t.trim());
-  } else if (record.changeType === 'keyword_found') {
-    diffData.keywords = record.keywordsMatched || [];
-  }
+  // 2. Prepare full injection data (pass complete snapshots for rendering)
+  const injectData = {
+    selector: task.selector || '',
+    changeType: record.changeType,
+    oldText: record.oldSnapshot?.text || '',
+    newText: record.newSnapshot?.text || '',
+    oldHtml: record.oldSnapshot?.html || '',
+    newHtml: record.newSnapshot?.html || '',
+    keywords: record.keywordsMatched || [],
+    diff: record.diff || '',
+  };
 
-  // 3. Open or switch to target tab
+  // 3. Open or switch to target tab (NO reload — preserve current page state)
   let tab;
   try {
     const tabs = await chrome.tabs.query({ url: urlToMatchPattern(task.url) });
     if (tabs.length > 0) {
       tab = tabs[0];
       await chrome.tabs.update(tab.id, { active: true });
-      // Reload to get fresh content matching the snapshot
-      await chrome.tabs.reload(tab.id);
     } else {
       tab = await chrome.tabs.create({ url: task.url });
     }
@@ -1118,18 +1454,12 @@ async function handleViewOnPage(record) {
   // 4. Wait for tab to finish loading
   await waitForTabLoad(tab.id);
 
-  // 5. Inject highlight script
+  // 5. Inject highlight script with full snapshot data
   try {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
       func: highlightOnPage,
-      args: [{
-        selector: task.selector,
-        changeType: record.changeType,
-        addedChunks: diffData.addedChunks || [],
-        removedChunks: diffData.removedChunks || [],
-        keywords: diffData.keywords || []
-      }]
+      args: [injectData],
     });
     // Focus the tab's window
     await chrome.windows.update(tab.windowId, { focused: true });
@@ -1145,7 +1475,9 @@ function waitForTabLoad(tabId, timeoutMs = 30000) {
   return new Promise((resolve) => {
     let settled = false;
     const done = () => {
-      if (settled) return;
+      if (settled) {
+        return;
+      }
       settled = true;
       clearTimeout(timeout);
       chrome.tabs.onUpdated.removeListener(listener);
@@ -1175,119 +1507,423 @@ function waitForTabLoad(tabId, timeoutMs = 30000) {
  * 不能引用任何外部变量或函数
  *
  * 功能：
+ * - 顶部浮动工具栏（导航、清除标记、折叠面板）
+ * - 完整的变更前后对比面板（不依赖 DOM 匹配，直接用快照数据渲染）
  * - 被监控元素蓝色虚线边框
- * - 新增文本绿色底色+下划线标记
- * - 删除内容红色删除线（插入到元素前方）
+ * - 新增文本绿色底色标记（尽力在 DOM 中匹配）
+ * - 删除内容红色删除线（插入到元素前方 + 面板中完整展示）
  * - 关键词橙色高亮
- * - 顶部浮动工具栏（导航、查看删除内容、清除标记）
- * - 自动滚动到第一个变化
+ * - 自动滚动到对比面板或第一个变化
+ *
+ * @param {object} data - { selector, changeType, oldText, newText, oldHtml, newHtml, keywords, diff }
  */
+/* eslint-disable no-var, no-redeclare, no-inner-declarations, max-depth, complexity */
 function highlightOnPage(data) {
-  // data: { selector, changeType, addedChunks, removedChunks, keywords }
-
-  var P = '__pw';
-  var TOOLBAR_ID = P + '_toolbar';
-  var STYLE_ID = P + '_style';
-  var MARK_ADDED = P + '_added';
-  var MARK_KEYWORD = P + '_kw';
-  var TARGET_CLS = P + '_target';
-  var REMOVED_CLS = P + '_removed';
+  const P = '__pw';
+  const TOOLBAR_ID = P + '_toolbar';
+  const STYLE_ID = P + '_style';
+  const MARK_ADDED = P + '_added';
+  const MARK_KEYWORD = P + '_kw';
+  const TARGET_CLS = P + '_target';
+  const REMOVED_CLS = P + '_removed';
+  const PANEL_ID = P + '_panel';
 
   // If already highlighted, clear and re-apply
-  if (document.getElementById(TOOLBAR_ID)) {
+  if (document.getElementById(TOOLBAR_ID) || document.getElementById(PANEL_ID)) {
     clearAll();
   }
 
   // ---- Inject styles ----
-  var styleEl = document.createElement('style');
+  const styleEl = document.createElement('style');
   styleEl.id = STYLE_ID;
   styleEl.textContent = [
-    '.' + TARGET_CLS + ' { outline: 3px dashed #1a73e8 !important; outline-offset: 6px !important; }',
-    '.' + MARK_ADDED + ' { background: rgba(76,175,80,0.35) !important; border-bottom: 2px solid #4caf50 !important; padding: 0 2px !important; border-radius: 2px !important; cursor: help !important; }',
-    '.' + MARK_KEYWORD + ' { background: rgba(255,152,0,0.35) !important; border-bottom: 2px solid #ff9800 !important; padding: 0 2px !important; border-radius: 2px !important; font-weight: 600 !important; }',
-    '.' + REMOVED_CLS + '_section { background: rgba(244,67,54,0.06) !important; border-left: 3px solid #ef5350 !important; padding: 8px 12px !important; margin: 8px 0 !important; border-radius: 0 4px 4px 0 !important; }',
-    '.' + REMOVED_CLS + '_label { color: #e53935 !important; font-weight: 600 !important; font-size: 0.8em !important; margin-right: 8px !important; }',
-    '.' + REMOVED_CLS + '_text { color: #b71c1c !important; text-decoration: line-through !important; }',
-    '#' + TOOLBAR_ID + ' { position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; z-index: 2147483647 !important; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif !important; font-size: 14px !important; box-shadow: 0 2px 12px rgba(0,0,0,0.25) !important; }',
-    '.' + P + '_main { display: flex !important; align-items: center !important; padding: 10px 16px !important; gap: 12px !important; background: linear-gradient(135deg,#1a73e8,#0d47a1) !important; color: #fff !important; }',
+    '.' +
+      TARGET_CLS +
+      ' { outline: 3px dashed #1a73e8 !important; outline-offset: 6px !important; }',
+    '.' +
+      MARK_ADDED +
+      ' { background: rgba(76,175,80,0.35) !important; border-bottom: 2px solid #4caf50 !important; padding: 0 2px !important; border-radius: 2px !important; cursor: help !important; }',
+    '.' +
+      MARK_KEYWORD +
+      ' { background: rgba(255,152,0,0.35) !important; border-bottom: 2px solid #ff9800 !important; padding: 0 2px !important; border-radius: 2px !important; font-weight: 600 !important; }',
+    '.' +
+      REMOVED_CLS +
+      '_section { background: rgba(244,67,54,0.06) !important; border-left: 3px solid #ef5350 !important; padding: 8px 12px !important; margin: 8px 0 !important; border-radius: 0 4px 4px 0 !important; }',
+    '.' +
+      REMOVED_CLS +
+      '_label { color: #e53935 !important; font-weight: 600 !important; font-size: 0.8em !important; margin-right: 8px !important; cursor: pointer !important; }',
+    '.' +
+      REMOVED_CLS +
+      '_text { color: #b71c1c !important; text-decoration: line-through !important; }',
+    '.' +
+      REMOVED_CLS +
+      '_text.collapsed { max-height: 3em !important; overflow: hidden !important; position: relative !important; }',
+    '.' +
+      REMOVED_CLS +
+      '_text.collapsed::after { content: "...点击展开" !important; position: absolute !important; bottom: 0 !important; left: 0 !important; right: 0 !important; background: linear-gradient(transparent, rgba(244,67,54,0.06)) !important; padding: 4px 0 !important; text-decoration: none !important; font-size: 0.85em !important; cursor: pointer !important; color: #e53935 !important; }',
+    '#' +
+      TOOLBAR_ID +
+      ' { position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; z-index: 2147483647 !important; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif !important; font-size: 14px !important; box-shadow: 0 2px 12px rgba(0,0,0,0.25) !important; }',
+    '.' +
+      P +
+      '_main { display: flex !important; align-items: center !important; padding: 10px 16px !important; gap: 12px !important; background: linear-gradient(135deg,#1a73e8,#0d47a1) !important; color: #fff !important; }',
     '.' + P + '_title { font-weight: 700 !important; white-space: nowrap !important; }',
-    '.' + P + '_summary { flex: 1 !important; font-size: 13px !important; opacity: 0.9 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }',
-    '.' + P + '_nav { display: flex !important; align-items: center !important; gap: 6px !important; }',
-    '.' + P + '_nav span { font-size: 12px !important; opacity: 0.8 !important; min-width: 40px !important; text-align: center !important; }',
-    '.' + P + '_btn { background: rgba(255,255,255,0.15) !important; border: 1px solid rgba(255,255,255,0.3) !important; color: #fff !important; padding: 4px 12px !important; border-radius: 4px !important; cursor: pointer !important; font-size: 12px !important; transition: background 0.15s !important; white-space: nowrap !important; }',
+    '.' +
+      P +
+      '_summary { flex: 1 !important; font-size: 13px !important; opacity: 0.9 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }',
+    '.' +
+      P +
+      '_btn { background: rgba(255,255,255,0.15) !important; border: 1px solid rgba(255,255,255,0.3) !important; color: #fff !important; padding: 4px 12px !important; border-radius: 4px !important; cursor: pointer !important; font-size: 12px !important; transition: background 0.15s !important; white-space: nowrap !important; }',
     '.' + P + '_btn:hover { background: rgba(255,255,255,0.25) !important; }',
-    '.' + P + '_btn:disabled { opacity: 0.4 !important; cursor: default !important; }',
-    '.' + P + '_sep { width: 1px !important; height: 20px !important; background: rgba(255,255,255,0.3) !important; }',
-    '.' + P + '_rpanel { display: none !important; background: rgba(0,0,0,0.15) !important; padding: 12px 16px !important; max-height: 200px !important; overflow-y: auto !important; color: #fff !important; }',
-    '.' + P + '_rpanel.open { display: block !important; }',
-    '.' + P + '_ritem { padding: 4px 0 !important; font-size: 13px !important; }',
-    '.' + P + '_ritem del { color: #ffcdd2 !important; }',
-    'body.' + P + '_active { padding-top: 0 !important; }'
+    '.' +
+      P +
+      '_sep { width: 1px !important; height: 20px !important; background: rgba(255,255,255,0.3) !important; flex-shrink: 0 !important; }',
+    // Full diff panel styles
+    '#' +
+      PANEL_ID +
+      ' { position: fixed !important; top: 48px !important; left: 12px !important; right: 12px !important; bottom: 12px !important; z-index: 2147483646 !important; background: #fff !important; border-radius: 12px !important; box-shadow: 0 8px 40px rgba(0,0,0,0.3) !important; display: flex !important; flex-direction: column !important; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif !important; overflow: hidden !important; }',
+    '.' +
+      P +
+      '_panel_header { display: flex !important; align-items: center !important; justify-content: space-between !important; padding: 12px 20px !important; background: #fafbfc !important; border-bottom: 1px solid #e8e8e8 !important; }',
+    '.' +
+      P +
+      '_panel_title { font-size: 15px !important; font-weight: 600 !important; color: #333 !important; }',
+    '.' +
+      P +
+      '_panel_close { background: #e0e0e0 !important; border: none !important; width: 32px !important; height: 32px !important; border-radius: 50% !important; cursor: pointer !important; font-size: 18px !important; display: flex !important; align-items: center !important; justify-content: center !important; color: #666 !important; }',
+    '.' + P + '_panel_close:hover { background: #d0d0d0 !important; }',
+    '.' +
+      P +
+      '_panel_body { flex: 1 !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; }',
+    '.' +
+      P +
+      '_diff_tabs { display: flex !important; border-bottom: 1px solid #e0e0e0 !important; padding: 0 16px !important; }',
+    '.' +
+      P +
+      '_diff_tab { padding: 8px 16px !important; font-size: 13px !important; font-weight: 500 !important; color: #666 !important; cursor: pointer !important; border-bottom: 2px solid transparent !important; margin-bottom: -1px !important; background: none !important; border-top: none !important; border-left: none !important; border-right: none !important; }',
+    '.' + P + '_diff_tab:hover { color: #1a73e8 !important; }',
+    '.' +
+      P +
+      '_diff_tab.active { color: #1a73e8 !important; border-bottom-color: #1a73e8 !important; }',
+    '.' +
+      P +
+      '_diff_content { flex: 1 !important; overflow-y: auto !important; padding: 16px 20px !important; }',
+    '.' +
+      P +
+      '_diff_grid { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; min-height: 100% !important; }',
+    '.' + P + '_diff_col { min-width: 0 !important; }',
+    '.' +
+      P +
+      '_diff_label { font-size: 11px !important; font-weight: 600 !important; color: #888 !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; margin-bottom: 8px !important; }',
+    '.' +
+      P +
+      '_diff_text { background: #fafbfc !important; border: 1px solid #e8e8e8 !important; border-radius: 6px !important; padding: 12px 14px !important; font-size: 13px !important; line-height: 1.7 !important; word-break: break-word !important; white-space: pre-wrap !important; color: #333 !important; max-height: none !important; font-family: Consolas,Monaco,"Courier New",monospace !important; }',
+    '.' +
+      P +
+      '_diff_text mark.removed { background: #fdd !important; color: #b71c1c !important; text-decoration: line-through !important; border-radius: 2px !important; padding: 1px 3px !important; }',
+    '.' +
+      P +
+      '_diff_text mark.added { background: #c8e6c9 !important; color: #1b5e20 !important; border-radius: 2px !important; padding: 1px 3px !important; }',
+    '.' +
+      P +
+      '_diff_text .diff-ellipsis { color: #aaa !important; font-style: italic !important; }',
+    '.' +
+      P +
+      '_diff_text .diff-deleted-marker { background: #fce4ec !important; color: #c62828 !important; text-decoration: line-through !important; opacity: 0.65 !important; border-radius: 2px !important; padding: 1px 4px !important; font-size: 0.9em !important; cursor: help !important; }',
+    '.' +
+      P +
+      '_diff_text .diff-added-marker { background: #e8f5e9 !important; color: #2e7d32 !important; border-radius: 2px !important; padding: 1px 4px !important; font-size: 0.85em !important; cursor: help !important; }',
+    '.' +
+      P +
+      '_diff_text mark.keyword { background: #ffe0b2 !important; color: #e65100 !important; border-radius: 2px !important; padding: 1px 3px !important; font-weight: 600 !important; }',
+    '.' + P + '_kw_section { padding: 8px 0 !important; }',
+    '.' +
+      P +
+      '_kw_item { padding: 6px 12px !important; margin: 6px 0 !important; background: #fff3e0 !important; border-left: 3px solid #ff9800 !important; border-radius: 0 4px 4px 0 !important; font-size: 13px !important; color: #e65100 !important; font-weight: 500 !important; }',
+    '.' +
+      P +
+      '_struct_summary { padding: 12px 16px !important; background: #f0f4ff !important; border-radius: 6px !important; margin-bottom: 12px !important; line-height: 1.5 !important; font-size: 13px !important; color: #555 !important; }',
+    // Overlay backdrop for panel
+    '#' +
+      P +
+      '_backdrop { position: fixed !important; inset: 0 !important; background: rgba(0,0,0,0.3) !important; z-index: 2147483645 !important; }',
+    'body.' + P + '_active { padding-top: 0 !important; }',
   ].join('\n');
   document.head.appendChild(styleEl);
 
   // ---- Find target element ----
-  var el = data.selector ? document.querySelector(data.selector) : document.body;
+  const el = data.selector ? document.querySelector(data.selector) : document.body;
 
-  // If target element not found but there is deleted content,
-  // still show the deleted content in a floating overlay
-  if (!el) {
-    if (data.removedChunks && data.removedChunks.length > 0) {
-      showDeletedContentFallback(data.removedChunks);
-    } else {
-      buildToolbar(data, []);
-    }
-    return;
+  // Mark target element (if found)
+  if (el) {
+    el.classList.add(TARGET_CLS);
   }
 
-  // Mark target element
-  el.classList.add(TARGET_CLS);
+  // ---- Compute diff segments (self-contained, no external deps) ----
+  let segments = [];
+  let addedChunks = [];
+  let removedChunks = [];
 
-  // ---- Apply highlights ----
-  var marks = [];
+  if (data.changeType === 'text_change' && (data.oldText || data.newText)) {
+    segments = computeDiffLocally(data.oldText, data.newText);
+    addedChunks = [];
+    removedChunks = [];
+    for (let i = 0; i < segments.length; i++) {
+      if (segments[i].type === 'added' && segments[i].text.trim()) {
+        addedChunks.push(segments[i].text);
+      }
+      if (segments[i].type === 'removed' && segments[i].text.trim()) {
+        removedChunks.push(segments[i].text);
+      }
+    }
+  }
 
-  if (data.changeType === 'text_change') {
-    marks = applyAddedHighlights(el, data.addedChunks || []);
-    insertRemovedBlocks(el, data.removedChunks || []);
-  } else if (data.changeType === 'keyword_found') {
-    marks = applyKeywordHighlights(el, data.keywords || []);
+  // ---- Apply in-page highlights (best-effort) ----
+  let marks = [];
+  if (el) {
+    if (data.changeType === 'text_change') {
+      marks = applyAddedHighlights(el, addedChunks);
+      insertRemovedBlocks(el, removedChunks);
+    } else if (data.changeType === 'keyword_found') {
+      marks = applyKeywordHighlights(el, data.keywords || []);
+    }
   }
 
   // ---- Build toolbar ----
-  buildToolbar(data, marks);
+  buildToolbar(data, segments, marks);
 
-  // ---- Scroll to element ----
-  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  // ---- Build full comparison panel ----
+  buildFullPanel(data, segments);
 
-  // ========== Local helper functions ==========
+  // ---- Scroll ----
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 
+  // ========== Self-contained diff engine (LCS-based) ==========
+  // Tiny tokenizer: CJK char-by-char, English by word
+  function tokenizeLocal(text) {
+    if (!text) {
+      return [];
+    }
+    const tokens = [];
+    const re =
+      /[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]|[a-zA-Z0-9]+|\s+|[^\s\w\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]+/g;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      tokens.push(m[0]);
+    }
+    return tokens;
+  }
+
+  function lcsLocal(a, b) {
+    const m = a.length,
+      n = b.length;
+    const dp = new Array(m + 1);
+    for (var i = 0; i <= m; i++) {
+      dp[i] = new Uint16Array(n + 1);
+    }
+    for (var i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        if (a[i - 1] === b[j - 1]) {
+          dp[i][j] = dp[i - 1][j - 1] + 1;
+        } else {
+          dp[i][j] = dp[i - 1][j] > dp[i][j - 1] ? dp[i - 1][j] : dp[i][j - 1];
+        }
+      }
+    }
+    return dp;
+  }
+
+  function backtrackLocal(dp, a, b) {
+    const raw = [];
+    let i = a.length,
+      j = b.length;
+    while (i > 0 || j > 0) {
+      if (i > 0 && j > 0 && a[i - 1] === b[j - 1]) {
+        raw.push({ type: 'equal', text: a[i - 1] });
+        i--;
+        j--;
+      } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+        raw.push({ type: 'added', text: b[j - 1] });
+        j--;
+      } else {
+        raw.push({ type: 'removed', text: a[i - 1] });
+        i--;
+      }
+    }
+    raw.reverse();
+    const merged = [];
+    for (let k = 0; k < raw.length; k++) {
+      const last = merged[merged.length - 1];
+      if (last && last.type === raw[k].type) {
+        last.text += raw[k].text;
+      } else {
+        merged.push({ type: raw[k].type, text: raw[k].text });
+      }
+    }
+    return merged;
+  }
+
+  function computeDiffLocally(oldText, newText) {
+    if (!oldText && !newText) {
+      return [];
+    }
+    if (!oldText) {
+      return [{ type: 'added', text: newText }];
+    }
+    if (!newText) {
+      return [{ type: 'removed', text: oldText }];
+    }
+    const MAX_T = 2000;
+    const ot = tokenizeLocal(oldText);
+    const nt = tokenizeLocal(newText);
+    if (ot.length <= MAX_T && nt.length <= MAX_T) {
+      return backtrackLocal(lcsLocal(ot, nt), ot, nt);
+    }
+    // For very large texts, do line-level diff
+    const ol = oldText.split('\n');
+    const nl = newText.split('\n');
+    const segs = [];
+    const maxLen = Math.max(ol.length, nl.length);
+    for (let i = 0; i < maxLen; i++) {
+      if (ol[i] === nl[i]) {
+        segs.push({ type: 'equal', text: ol[i] + '\n' });
+      } else {
+        if (ol[i] !== undefined) {
+          segs.push({ type: 'removed', text: ol[i] + '\n' });
+        }
+        if (nl[i] !== undefined) {
+          segs.push({ type: 'added', text: nl[i] + '\n' });
+        }
+      }
+    }
+    return segs;
+  }
+
+  // ========== Rendering helpers ==========
+  function escHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+  }
+
+  function renderDiffToHtml(segs, side) {
+    let html = '';
+    for (let i = 0; i < segs.length; i++) {
+      const s = segs[i];
+      if (s.type === 'equal') {
+        html += escHtml(s.text);
+      } else if (s.type === 'removed' && side === 'before') {
+        html += '<mark class="removed">' + escHtml(s.text) + '</mark>';
+      } else if (s.type === 'removed' && side === 'after') {
+        const txt = s.text.length > 500 ? s.text.slice(0, 500) + '\u2026' : s.text;
+        html +=
+          '<span class="diff-deleted-marker" title="已删除的内容">' + escHtml(txt) + '</span>';
+      } else if (s.type === 'added' && side === 'after') {
+        html += '<mark class="added">' + escHtml(s.text) + '</mark>';
+      } else if (s.type === 'added' && side === 'before') {
+        html += '<span class="diff-added-marker" title="此处新增了内容">[+]</span>';
+      }
+    }
+    return html || '<span class="diff-ellipsis">（无差异）</span>';
+  }
+
+  // ========== In-page highlight functions ==========
+
+  function collectTextNodes(root) {
+    const nodes = [];
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+    let n;
+    while ((n = walker.nextNode())) {
+      if (n.textContent.trim()) {
+        nodes.push(n);
+      }
+    }
+    return nodes;
+  }
+
+  /**
+   * Improved added highlight: tries exact match first,
+   * then falls back to searching across concatenated textNodes
+   */
   function applyAddedHighlights(root, chunks) {
-    var result = [];
-    var textNodes = collectTextNodes(root);
+    const result = [];
+    let textNodes = collectTextNodes(root);
 
-    for (var i = 0; i < chunks.length; i++) {
-      var chunk = chunks[i];
-      if (!chunk || !chunk.trim()) continue;
+    for (let ci = 0; ci < chunks.length; ci++) {
+      const chunk = chunks[ci];
+      if (!chunk || !chunk.trim()) {
+        continue;
+      }
+      let found = false;
 
+      // Strategy 1: exact match in a single textNode
       for (var j = 0; j < textNodes.length; j++) {
-        var tn = textNodes[j];
-        var idx = tn.textContent.indexOf(chunk);
+        const idx = textNodes[j].textContent.indexOf(chunk);
         if (idx >= 0) {
           try {
-            var range = document.createRange();
-            range.setStart(tn, idx);
-            range.setEnd(tn, idx + chunk.length);
-            var mark = document.createElement('mark');
+            const range = document.createRange();
+            range.setStart(textNodes[j], idx);
+            range.setEnd(textNodes[j], idx + chunk.length);
+            const mark = document.createElement('mark');
             mark.className = MARK_ADDED;
             mark.title = '新增内容';
             range.surroundContents(mark);
             result.push(mark);
-            // Refresh text nodes after DOM modification
             textNodes = collectTextNodes(root);
+            found = true;
           } catch (e) {
-            // Range crosses element boundary — skip
+            /* cross-boundary, try next strategy */
           }
           break;
+        }
+      }
+      if (found) {
+        continue;
+      }
+
+      // Strategy 2: search across concatenated textNodes (cross-node match)
+      // Build a map of textNode → cumulative offset
+      let fullText = '';
+      const nodeMap = []; // { node, start, end }
+      for (var j = 0; j < textNodes.length; j++) {
+        const start = fullText.length;
+        fullText += textNodes[j].textContent;
+        nodeMap.push({ node: textNodes[j], start: start, end: fullText.length });
+      }
+
+      const crossIdx = fullText.indexOf(chunk);
+      if (crossIdx >= 0) {
+        // Found across nodes — highlight each portion within its node
+        const chunkStart = crossIdx;
+        const chunkEnd = crossIdx + chunk.length;
+        const tempMarks = [];
+        try {
+          for (let k = 0; k < nodeMap.length && chunkStart < chunkEnd; k++) {
+            const nm = nodeMap[k];
+            const overlapStart = Math.max(chunkStart, nm.start);
+            const overlapEnd = Math.min(chunkEnd, nm.end);
+            if (overlapStart >= overlapEnd) {
+              continue;
+            }
+            const localStart = overlapStart - nm.start;
+            const localEnd = overlapEnd - nm.start;
+            const r = document.createRange();
+            r.setStart(nm.node, localStart);
+            r.setEnd(nm.node, localEnd);
+            const mk = document.createElement('mark');
+            mk.className = MARK_ADDED;
+            mk.title = '新增内容';
+            r.surroundContents(mk);
+            tempMarks.push(mk);
+          }
+          for (let t = 0; t < tempMarks.length; t++) {
+            result.push(tempMarks[t]);
+          }
+          textNodes = collectTextNodes(root);
+        } catch (e) {
+          /* cross-boundary within nested elements, skip */
         }
       }
     }
@@ -1295,30 +1931,29 @@ function highlightOnPage(data) {
   }
 
   function applyKeywordHighlights(root, keywords) {
-    var result = [];
-    if (!keywords || keywords.length === 0) return result;
-    var textNodes = collectTextNodes(root);
+    const result = [];
+    if (!keywords || keywords.length === 0) {
+      return result;
+    }
+    let textNodes = collectTextNodes(root);
 
-    for (var i = 0; i < keywords.length; i++) {
-      var kw = keywords[i];
-      for (var j = 0; j < textNodes.length; j++) {
-        var tn = textNodes[j];
-        var lowerText = tn.textContent.toLowerCase();
-        var lowerKw = kw.toLowerCase();
-        var idx = lowerText.indexOf(lowerKw);
+    for (let i = 0; i < keywords.length; i++) {
+      const kw = keywords[i];
+      for (let j = 0; j < textNodes.length; j++) {
+        const idx = textNodes[j].textContent.toLowerCase().indexOf(kw.toLowerCase());
         if (idx >= 0) {
           try {
-            var range = document.createRange();
-            range.setStart(tn, idx);
-            range.setEnd(tn, idx + kw.length);
-            var mark = document.createElement('mark');
+            const range = document.createRange();
+            range.setStart(textNodes[j], idx);
+            range.setEnd(textNodes[j], idx + kw.length);
+            const mark = document.createElement('mark');
             mark.className = MARK_KEYWORD;
             mark.title = '匹配关键词: ' + kw;
             range.surroundContents(mark);
             result.push(mark);
             textNodes = collectTextNodes(root);
           } catch (e) {
-            // Range crosses element boundary — skip
+            /* skip */
           }
           break;
         }
@@ -1328,62 +1963,85 @@ function highlightOnPage(data) {
   }
 
   function insertRemovedBlocks(root, chunks) {
-    if (!chunks || chunks.length === 0) return;
-    var filtered = chunks.filter(function(c) { return c && c.trim(); });
-    if (filtered.length === 0) return;
+    if (!chunks || chunks.length === 0) {
+      return;
+    }
+    const filtered = [];
+    for (var i = 0; i < chunks.length; i++) {
+      if (chunks[i] && chunks[i].trim()) {
+        filtered.push(chunks[i]);
+      }
+    }
+    if (filtered.length === 0) {
+      return;
+    }
 
-    var container = document.createElement('div');
+    const container = document.createElement('div');
     container.className = REMOVED_CLS + '_section';
 
-    var label = document.createElement('span');
+    const label = document.createElement('span');
     label.className = REMOVED_CLS + '_label';
-    label.textContent = '已删除的内容:';
+    label.textContent = '已删除的内容 (' + filtered.length + ' 处):';
     container.appendChild(label);
 
-    // 逐条展示删除的内容，而非合并为一段
     for (var i = 0; i < filtered.length; i++) {
-      var text = document.createElement('span');
+      const text = document.createElement('span');
       text.className = REMOVED_CLS + '_text';
-      var content = filtered[i];
-      text.textContent = content.length > 200 ? content.slice(0, 200) + '\u2026' : content;
+      text.textContent = filtered[i];
+      // Truncate display with click-to-expand (using max-height instead of textContent truncation)
+      if (filtered[i].length > 300) {
+        text.classList.add('collapsed');
+        text.title = '点击展开完整删除内容';
+        (function (txtEl) {
+          txtEl.addEventListener('click', function () {
+            txtEl.classList.toggle('collapsed');
+            txtEl.title = txtEl.classList.contains('collapsed')
+              ? '点击展开完整删除内容'
+              : '点击收起';
+          });
+        })(text);
+      }
       container.appendChild(text);
       if (i < filtered.length - 1) {
         container.appendChild(document.createElement('br'));
       }
     }
 
-    root.parentNode.insertBefore(container, root);
-  }
-
-  function collectTextNodes(root) {
-    var nodes = [];
-    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
-    var n;
-    while (n = walker.nextNode()) {
-      if (n.textContent.trim()) nodes.push(n);
+    // Insert before the target element
+    if (root.parentNode) {
+      root.parentNode.insertBefore(container, root);
     }
-    return nodes;
   }
 
-  function buildToolbar(data, marks) {
-    var toolbar = document.createElement('div');
+  // ========== Toolbar ==========
+
+  function buildToolbar(data, segments, marks) {
+    const toolbar = document.createElement('div');
     toolbar.id = TOOLBAR_ID;
 
-    var main = document.createElement('div');
+    const main = document.createElement('div');
     main.className = P + '_main';
 
     // Title
-    var title = document.createElement('span');
+    const title = document.createElement('span');
     title.className = P + '_title';
     title.textContent = '\u{1F50D} PageWhat';
     main.appendChild(title);
 
     // Summary
-    var summary = document.createElement('span');
+    const summary = document.createElement('span');
     summary.className = P + '_summary';
     if (data.changeType === 'text_change') {
-      var ac = (data.addedChunks || []).filter(function(c) { return c.trim(); }).length;
-      var rc = (data.removedChunks || []).filter(function(c) { return c.trim(); }).length;
+      let ac = 0,
+        rc = 0;
+      for (let i = 0; i < segments.length; i++) {
+        if (segments[i].type === 'added' && segments[i].text.trim()) {
+          ac++;
+        }
+        if (segments[i].type === 'removed' && segments[i].text.trim()) {
+          rc++;
+        }
+      }
       summary.textContent = ac + ' 处新增, ' + rc + ' 处删除';
     } else if (data.changeType === 'keyword_found') {
       summary.textContent = '发现关键词: ' + (data.keywords || []).join(', ');
@@ -1392,43 +2050,60 @@ function highlightOnPage(data) {
     }
     main.appendChild(summary);
 
-    // Navigation (prev/next mark)
+    // "查看完整对比" button — opens the full diff panel
+    const sep0 = document.createElement('div');
+    sep0.className = P + '_sep';
+    main.appendChild(sep0);
+    const panelBtn = document.createElement('button');
+    panelBtn.className = P + '_btn';
+    panelBtn.textContent = '\u{1F4CA} 查看完整对比';
+    main.appendChild(panelBtn);
+
+    // Navigation (prev/next mark) — only if there are in-page marks
     if (marks.length > 0) {
-      var sep1 = document.createElement('div');
+      const sep1 = document.createElement('div');
       sep1.className = P + '_sep';
       main.appendChild(sep1);
 
-      var nav = document.createElement('div');
+      const nav = document.createElement('div');
       nav.className = P + '_nav';
+      nav.style.cssText = 'display:flex;align-items:center;gap:6px;';
 
-      var prevBtn = document.createElement('button');
+      const prevBtn = document.createElement('button');
       prevBtn.className = P + '_btn';
       prevBtn.textContent = '\u25C0 上一个';
 
-      var counter = document.createElement('span');
+      const counter = document.createElement('span');
       counter.textContent = '0/' + marks.length;
 
-      var nextBtn = document.createElement('button');
+      const nextBtn = document.createElement('button');
       nextBtn.className = P + '_btn';
       nextBtn.textContent = '下一个 \u25B6';
 
-      var currentIdx = -1;
+      let currentIdx = -1;
 
       function navigateTo(idx) {
-        if (idx < 0 || idx >= marks.length) return;
+        if (idx < 0 || idx >= marks.length) {
+          return;
+        }
         currentIdx = idx;
-        counter.textContent = (idx + 1) + '/' + marks.length;
+        counter.textContent = idx + 1 + '/' + marks.length;
         marks[idx].scrollIntoView({ behavior: 'smooth', block: 'center' });
-        // Brief flash
         marks[idx].style.transition = 'transform 0.15s';
         marks[idx].style.transform = 'scale(1.15)';
-        setTimeout(function() { marks[idx].style.transform = ''; }, 300);
+        setTimeout(function () {
+          marks[idx].style.transform = '';
+        }, 300);
         prevBtn.disabled = idx === 0;
         nextBtn.disabled = idx === marks.length - 1;
       }
 
-      prevBtn.addEventListener('click', function() { navigateTo(currentIdx - 1); });
-      nextBtn.addEventListener('click', function() { navigateTo(currentIdx + 1); });
+      prevBtn.addEventListener('click', function () {
+        navigateTo(currentIdx - 1);
+      });
+      nextBtn.addEventListener('click', function () {
+        navigateTo(currentIdx + 1);
+      });
       prevBtn.disabled = true;
 
       nav.appendChild(prevBtn);
@@ -1436,32 +2111,17 @@ function highlightOnPage(data) {
       nav.appendChild(nextBtn);
       main.appendChild(nav);
 
-      // Auto-navigate to first mark after a short delay
-      setTimeout(function() { navigateTo(0); }, 600);
-    }
-
-    // "查看删除内容" toggle (for text_change with removals)
-    var removedBtn = null;
-    if (data.changeType === 'text_change' && data.removedChunks) {
-      var rc2 = data.removedChunks.filter(function(c) { return c.trim(); });
-      if (rc2.length > 0) {
-        var sep2 = document.createElement('div');
-        sep2.className = P + '_sep';
-        main.appendChild(sep2);
-
-        removedBtn = document.createElement('button');
-        removedBtn.className = P + '_btn';
-        removedBtn.textContent = '查看删除内容 \u25BC';
-        main.appendChild(removedBtn);
-      }
+      setTimeout(function () {
+        navigateTo(0);
+      }, 600);
     }
 
     // Dismiss button
-    var sep3 = document.createElement('div');
+    const sep3 = document.createElement('div');
     sep3.className = P + '_sep';
     main.appendChild(sep3);
 
-    var dismissBtn = document.createElement('button');
+    const dismissBtn = document.createElement('button');
     dismissBtn.className = P + '_btn';
     dismissBtn.textContent = '\u2715 清除标记';
     dismissBtn.addEventListener('click', clearAll);
@@ -1469,137 +2129,341 @@ function highlightOnPage(data) {
 
     toolbar.appendChild(main);
 
-    // Removed content dropdown panel
-    if (removedBtn) {
-      var panel = document.createElement('div');
-      panel.className = P + '_rpanel';
-      for (var k = 0; k < data.removedChunks.length; k++) {
-        var chunk = data.removedChunks[k];
-        if (!chunk || !chunk.trim()) continue;
-        var item = document.createElement('div');
-        item.className = P + '_ritem';
-        var del = document.createElement('del');
-        del.textContent = chunk.length > 200 ? chunk.slice(0, 200) + '\u2026' : chunk;
-        item.appendChild(del);
-        panel.appendChild(item);
+    // Panel toggle
+    panelBtn.addEventListener('click', function () {
+      const panel = document.getElementById(PANEL_ID);
+      const backdrop = document.getElementById(P + '_backdrop');
+      if (panel) {
+        panel.remove();
+        if (backdrop) {
+          backdrop.remove();
+        }
+      } else {
+        buildFullPanel(data, segments);
+        const bd = document.createElement('div');
+        bd.id = P + '_backdrop';
+        bd.addEventListener('click', function () {
+          const p = document.getElementById(PANEL_ID);
+          if (p) {
+            p.remove();
+          }
+          bd.remove();
+        });
+        document.body.appendChild(bd);
       }
-      toolbar.appendChild(panel);
-
-      removedBtn.addEventListener('click', function() {
-        var isOpen = panel.classList.contains('open');
-        panel.classList.toggle('open');
-        removedBtn.textContent = isOpen ? '查看删除内容 \u25BC' : '收起删除内容 \u25B2';
-      });
-    }
+    });
 
     document.body.appendChild(toolbar);
     document.body.classList.add(P + '_active');
   }
 
-  function showDeletedContentFallback(chunks) {
-    var filtered = chunks.filter(function(c) { return c && c.trim(); });
-    if (filtered.length === 0) {
-      buildToolbar(data, []);
+  // ========== Full Comparison Panel ==========
+
+  function buildFullPanel(data, segments) {
+    // Remove existing panel if present
+    const existing = document.getElementById(PANEL_ID);
+    if (existing) {
+      existing.remove();
+    }
+
+    const panel = document.createElement('div');
+    panel.id = PANEL_ID;
+
+    // Header
+    const header = document.createElement('div');
+    header.className = P + '_panel_header';
+    const htitle = document.createElement('span');
+    htitle.className = P + '_panel_title';
+    if (data.changeType === 'text_change') {
+      htitle.textContent = '\u{1F4CA} 文本变化对比';
+    } else if (data.changeType === 'keyword_found') {
+      htitle.textContent = '\u{1F50D} 关键词匹配详情';
+    } else if (data.changeType === 'structure_change') {
+      htitle.textContent = '\u{1F3D7} 结构变化对比';
+    } else {
+      htitle.textContent = '\u{1F4CA} 变化详情';
+    }
+    header.appendChild(htitle);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.className = P + '_panel_close';
+    closeBtn.textContent = '\u2715';
+    closeBtn.addEventListener('click', function () {
+      panel.remove();
+      const bd = document.getElementById(P + '_backdrop');
+      if (bd) {
+        bd.remove();
+      }
+    });
+    header.appendChild(closeBtn);
+    panel.appendChild(header);
+
+    // Body
+    const body = document.createElement('div');
+    body.className = P + '_panel_body';
+
+    if (data.changeType === 'text_change') {
+      buildTextDiffInPanel(body, segments);
+    } else if (data.changeType === 'keyword_found') {
+      buildKeywordDiffInPanel(body, data);
+    } else if (data.changeType === 'structure_change') {
+      buildStructureDiffInPanel(body, data);
+    }
+
+    panel.appendChild(body);
+    document.body.appendChild(panel);
+
+    // Auto-scroll to panel
+    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function buildTextDiffInPanel(body, segments) {
+    // Tab: change regions / full text
+    const tabsDiv = document.createElement('div');
+    tabsDiv.className = P + '_diff_tabs';
+
+    const tabChange = document.createElement('button');
+    tabChange.className = P + '_diff_tab active';
+    tabChange.textContent = '变化区域';
+    const tabFull = document.createElement('button');
+    tabFull.className = P + '_diff_tab';
+    tabFull.textContent = '完整文本';
+    tabsDiv.appendChild(tabChange);
+    tabsDiv.appendChild(tabFull);
+    body.appendChild(tabsDiv);
+
+    const contentDiv = document.createElement('div');
+    contentDiv.className = P + '_diff_content';
+
+    // Render change regions (default)
+    const changeRegions = extractChangeRegionsLocal(segments);
+    contentDiv.appendChild(renderDiffGrid(contentDiv, changeRegions));
+
+    // Tab switching
+    tabChange.addEventListener('click', function () {
+      tabChange.classList.add('active');
+      tabFull.classList.remove('active');
+      contentDiv.innerHTML = '';
+      contentDiv.appendChild(renderDiffGrid(contentDiv, extractChangeRegionsLocal(segments)));
+    });
+    tabFull.addEventListener('click', function () {
+      tabFull.classList.add('active');
+      tabChange.classList.remove('active');
+      contentDiv.innerHTML = '';
+      contentDiv.appendChild(renderDiffGrid(contentDiv, segments));
+    });
+
+    body.appendChild(contentDiv);
+  }
+
+  function extractChangeRegionsLocal(segments) {
+    const changeIdx = [];
+    for (var i = 0; i < segments.length; i++) {
+      if (segments[i].type !== 'equal') {
+        changeIdx.push(i);
+      }
+    }
+    if (changeIdx.length === 0) {
+      return segments;
+    }
+
+    const RADIUS = 200;
+    const ranges = [];
+    for (let c = 0; c < changeIdx.length; c++) {
+      const start = Math.max(0, changeIdx[c] - RADIUS);
+      const end = Math.min(segments.length - 1, changeIdx[c] + RADIUS);
+      if (ranges.length > 0 && start <= ranges[ranges.length - 1].end + 1) {
+        ranges[ranges.length - 1].end = end;
+      } else {
+        ranges.push({ start: start, end: end });
+      }
+    }
+
+    const result = [];
+    for (var i = 0; i < ranges.length; i++) {
+      if (i > 0 || ranges[i].start > 0) {
+        result.push({ type: 'ellipsis', text: ' \u2026 ' });
+      }
+      for (let j = ranges[i].start; j <= ranges[i].end; j++) {
+        result.push(segments[j]);
+      }
+    }
+    if (ranges[ranges.length - 1].end < segments.length - 1) {
+      result.push({ type: 'ellipsis', text: ' \u2026 ' });
+    }
+    return result;
+  }
+
+  function renderDiffGrid(parent, segs) {
+    const grid = document.createElement('div');
+    grid.className = P + '_diff_grid';
+
+    const beforeCol = document.createElement('div');
+    beforeCol.className = P + '_diff_col';
+    const beforeLabel = document.createElement('div');
+    beforeLabel.className = P + '_diff_label';
+    beforeLabel.textContent = '变更前';
+    beforeCol.appendChild(beforeLabel);
+    const beforeText = document.createElement('div');
+    beforeText.className = P + '_diff_text';
+    beforeText.innerHTML = renderDiffToHtml(segs, 'before');
+    beforeCol.appendChild(beforeText);
+
+    const afterCol = document.createElement('div');
+    afterCol.className = P + '_diff_col';
+    const afterLabel = document.createElement('div');
+    afterLabel.className = P + '_diff_label';
+    afterLabel.textContent = '变更后';
+    afterCol.appendChild(afterLabel);
+    const afterText = document.createElement('div');
+    afterText.className = P + '_diff_text';
+    afterText.innerHTML = renderDiffToHtml(segs, 'after');
+    afterCol.appendChild(afterText);
+
+    grid.appendChild(beforeCol);
+    grid.appendChild(afterCol);
+    return grid;
+  }
+
+  function buildKeywordDiffInPanel(body, data) {
+    const contentDiv = document.createElement('div');
+    contentDiv.className = P + '_diff_content';
+    contentDiv.style.maxWidth = '700px';
+
+    if (!data.keywords || data.keywords.length === 0) {
+      contentDiv.textContent = '无匹配关键词';
+      body.appendChild(contentDiv);
       return;
     }
 
-    // Inject styles if not already present
-    if (!document.getElementById(STYLE_ID)) {
-      var styleEl = document.createElement('style');
-      styleEl.id = STYLE_ID;
-      styleEl.textContent = [
-        '.' + TARGET_CLS + ' { outline: 3px dashed #1a73e8 !important; outline-offset: 6px !important; }',
-        '.' + MARK_ADDED + ' { background: rgba(76,175,80,0.35) !important; border-bottom: 2px solid #4caf50 !important; padding: 0 2px !important; border-radius: 2px !important; cursor: help !important; }',
-        '.' + MARK_KEYWORD + ' { background: rgba(255,152,0,0.35) !important; border-bottom: 2px solid #ff9800 !important; padding: 0 2px !important; border-radius: 2px !important; font-weight: 600 !important; }',
-        '.' + REMOVED_CLS + '_section { background: rgba(244,67,54,0.06) !important; border-left: 3px solid #ef5350 !important; padding: 8px 12px !important; margin: 8px 0 !important; border-radius: 0 4px 4px 0 !important; }',
-        '.' + REMOVED_CLS + '_label { color: #e53935 !important; font-weight: 600 !important; font-size: 0.8em !important; margin-right: 8px !important; }',
-        '.' + REMOVED_CLS + '_text { color: #b71c1c !important; text-decoration: line-through !important; }',
-        '#' + TOOLBAR_ID + ' { position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; z-index: 2147483647 !important; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif !important; font-size: 14px !important; box-shadow: 0 2px 12px rgba(0,0,0,0.25) !important; }',
-        '.' + P + '_main { display: flex !important; align-items: center !important; padding: 10px 16px !important; gap: 12px !important; background: linear-gradient(135deg,#1a73e8,#0d47a1) !important; color: #fff !important; }',
-        '.' + P + '_title { font-weight: 700 !important; white-space: nowrap !important; }',
-        '.' + P + '_summary { flex: 1 !important; font-size: 13px !important; opacity: 0.9 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }',
-        '.' + P + '_btn { background: rgba(255,255,255,0.15) !important; border: 1px solid rgba(255,255,255,0.3) !important; color: #fff !important; padding: 4px 12px !important; border-radius: 4px !important; cursor: pointer !important; font-size: 12px !important; transition: background 0.15s !important; white-space: nowrap !important; }',
-        '.' + P + '_btn:hover { background: rgba(255,255,255,0.25) !important; }',
-        '.' + P + '_rpanel { display: none !important; background: rgba(0,0,0,0.15) !important; padding: 12px 16px !important; max-height: 200px !important; overflow-y: auto !important; color: #fff !important; }',
-        '.' + P + '_rpanel.open { display: block !important; }',
-        '.' + P + '_ritem { padding: 4px 0 !important; font-size: 13px !important; }',
-        '.' + P + '_ritem del { color: #ffcdd2 !important; }',
-        '.' + P + '_fallback { position: fixed !important; top: 60px !important; left: 50% !important; transform: translateX(-50%) !important; z-index: 2147483646 !important; background: white !important; border: 2px solid #ef5350 !important; border-radius: 8px !important; padding: 20px 24px !important; max-width: 600px !important; width: 90% !important; box-shadow: 0 4px 20px rgba(0,0,0,0.2) !important; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif !important; }',
-        '.' + P + '_fallback h3 { color: #c62828 !important; margin-bottom: 12px !important; font-size: 15px !important; }',
-        '.' + P + '_fallback p { color: #666 !important; font-size: 13px !important; margin-bottom: 12px !important; }',
-        '.' + P + '_fallback del { color: #b71c1c !important; text-decoration: line-through !important; background: #fce4ec !important; padding: 2px 4px !important; border-radius: 2px !important; }',
-        'body.' + P + '_active { padding-top: 0 !important; }'
-      ].join('\n');
-      document.head.appendChild(styleEl);
+    const desc = document.createElement('p');
+    desc.style.cssText = 'color:#666;font-size:13px;margin-bottom:16px;';
+    desc.textContent = '以下关键词在页面中被找到：';
+    contentDiv.appendChild(desc);
+
+    for (let i = 0; i < data.keywords.length; i++) {
+      const item = document.createElement('div');
+      item.className = P + '_kw_item';
+      item.textContent = '\u{1F534} ' + data.keywords[i];
+      contentDiv.appendChild(item);
     }
 
-    // Build toolbar
-    buildToolbar(data, []);
+    // Show context around keywords in the page text
+    if (data.newText) {
+      const ctxTitle = document.createElement('p');
+      ctxTitle.style.cssText = 'color:#666;font-size:13px;margin:16px 0 8px;font-weight:600;';
+      ctxTitle.textContent = '关键词上下文：';
+      contentDiv.appendChild(ctxTitle);
 
-    // Show floating panel with deleted content
-    var panel = document.createElement('div');
-    panel.className = P + '_fallback';
+      const ctxDiv = document.createElement('div');
+      ctxDiv.className = P + '_diff_text';
+      ctxDiv.style.maxHeight = '400px';
+      ctxDiv.style.overflow = 'auto';
 
-    var heading = document.createElement('h3');
-    heading.textContent = '\u26A0 监控元素已不存在';
-    panel.appendChild(heading);
+      let snippet = data.newText;
+      if (snippet.length > 5000) {
+        // Find first keyword position and extract context
+        const kw = data.keywords[0] || '';
+        const kwIdx = snippet.toLowerCase().indexOf(kw.toLowerCase());
+        if (kwIdx >= 0) {
+          const half = 2000;
+          const s = Math.max(0, kwIdx - half);
+          const e = Math.min(snippet.length, kwIdx + half + 2000);
+          snippet =
+            (s > 0 ? '\u2026' : '') + snippet.slice(s, e) + (e < snippet.length ? '\u2026' : '');
+        } else {
+          snippet = snippet.slice(0, 5000) + '\u2026';
+        }
+      }
 
-    var desc = document.createElement('p');
-    desc.textContent = '被监控的内容已从页面中删除。以下是被删除的内容：';
-    panel.appendChild(desc);
-
-    for (var i = 0; i < filtered.length; i++) {
-      var delEl = document.createElement('div');
-      delEl.style.cssText = 'margin: 6px 0; font-size: 13px; line-height: 1.6;';
-      var del = document.createElement('del');
-      del.textContent = filtered[i].length > 300 ? filtered[i].slice(0, 300) + '\u2026' : filtered[i];
-      delEl.appendChild(del);
-      panel.appendChild(delEl);
+      let escaped = escHtml(snippet);
+      for (let k = 0; k < data.keywords.length; k++) {
+        const kwEsc = escHtml(data.keywords[k]);
+        const re = new RegExp(kwEsc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+        escaped = escaped.replace(re, '<mark class="keyword">$&</mark>');
+      }
+      ctxDiv.innerHTML = escaped;
+      contentDiv.appendChild(ctxDiv);
     }
 
-    var closeBtn = document.createElement('button');
-    closeBtn.style.cssText = 'margin-top: 12px; padding: 6px 16px; background: #ef5350; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;';
-    closeBtn.textContent = '关闭';
-    closeBtn.addEventListener('click', function() { panel.remove(); });
-    panel.appendChild(closeBtn);
-
-    document.body.appendChild(panel);
-    document.body.classList.add(P + '_active');
+    body.appendChild(contentDiv);
   }
 
+  function buildStructureDiffInPanel(body, data) {
+    const contentDiv = document.createElement('div');
+    contentDiv.className = P + '_diff_content';
+
+    // Show summary
+    if (data.diff) {
+      const summary = document.createElement('div');
+      summary.className = P + '_struct_summary';
+      summary.textContent = data.diff;
+      contentDiv.appendChild(summary);
+    }
+
+    // Tag-level diff
+    const oldTags = extractTagLinesLocal(data.oldHtml || '');
+    const newTags = extractTagLinesLocal(data.newHtml || '');
+
+    if (oldTags || newTags) {
+      const segments = computeDiffLocally(oldTags, newTags);
+      const regions = extractChangeRegionsLocal(segments);
+      contentDiv.appendChild(renderDiffGrid(contentDiv, regions));
+    } else {
+      const noData = document.createElement('p');
+      noData.style.cssText = 'color:#999;font-size:13px;';
+      noData.textContent = '无结构数据可用于对比。';
+      contentDiv.appendChild(noData);
+    }
+
+    body.appendChild(contentDiv);
+  }
+
+  function extractTagLinesLocal(html) {
+    if (!html) {
+      return '';
+    }
+    const tags = html.match(/<[\w][^>]*>/g);
+    return tags ? tags.join('\n') : '';
+  }
+
+  // ========== Clear all ==========
+
   function clearAll() {
-    // Remove toolbar
-    var tb = document.getElementById(TOOLBAR_ID);
-    if (tb) tb.remove();
-
-    // Remove styles
-    var st = document.getElementById(STYLE_ID);
-    if (st) st.remove();
-
-    // Remove body class
+    const tb = document.getElementById(TOOLBAR_ID);
+    if (tb) {
+      tb.remove();
+    }
+    const pn = document.getElementById(PANEL_ID);
+    if (pn) {
+      pn.remove();
+    }
+    const bd = document.getElementById(P + '_backdrop');
+    if (bd) {
+      bd.remove();
+    }
+    const st = document.getElementById(STYLE_ID);
+    if (st) {
+      st.remove();
+    }
     document.body.classList.remove(P + '_active');
-
-    // Remove target outline
-    var targets = document.querySelectorAll('.' + TARGET_CLS);
+    const targets = document.querySelectorAll('.' + TARGET_CLS);
     for (var i = 0; i < targets.length; i++) {
       targets[i].classList.remove(TARGET_CLS);
     }
-
-    // Unwrap added/keyword marks
-    var marks = document.querySelectorAll('.' + MARK_ADDED + ', .' + MARK_KEYWORD);
+    const marks = document.querySelectorAll('.' + MARK_ADDED + ', .' + MARK_KEYWORD);
     for (var i = 0; i < marks.length; i++) {
-      var m = marks[i];
-      var parent = m.parentNode;
+      const m = marks[i];
+      const parent = m.parentNode;
       if (parent) {
         parent.replaceChild(document.createTextNode(m.textContent), m);
         parent.normalize();
       }
     }
-
-    // Remove removed blocks
-    var sections = document.querySelectorAll('.' + REMOVED_CLS + '_section');
+    const sections = document.querySelectorAll('.' + REMOVED_CLS + '_section');
     for (var i = 0; i < sections.length; i++) {
       sections[i].remove();
     }
   }
 }
+/* eslint-enable no-var, no-redeclare, no-inner-declarations, max-depth, complexity */

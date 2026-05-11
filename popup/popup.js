@@ -20,7 +20,7 @@ const elements = {
   taskList: document.getElementById('task-list'),
   emptyState: document.getElementById('empty-state'),
   btnSettings: document.getElementById('btn-settings'),
-  btnDashboard: document.getElementById('btn-dashboard')
+  btnDashboard: document.getElementById('btn-dashboard'),
 };
 
 // ==================== Initialization ====================
@@ -41,7 +41,7 @@ async function refreshData() {
   const [tasksResp, unreadResp, unreadByTaskResp] = await Promise.all([
     sendMessage({ type: 'GET_TASKS' }),
     sendMessage({ type: 'GET_UNREAD_COUNT' }),
-    sendMessage({ type: 'GET_UNREAD_COUNTS_BY_TASK' })
+    sendMessage({ type: 'GET_UNREAD_COUNTS_BY_TASK' }),
   ]);
   const tasks = tasksResp.success ? tasksResp.tasks : [];
   const unreadByTask = unreadByTaskResp.success ? unreadByTaskResp.counts : {};
@@ -95,8 +95,8 @@ async function handleAddTask() {
   const monitorType = elements.inputType.value;
   const keywords = elements.inputKeywords.value
     .split(',')
-    .map(k => k.trim())
-    .filter(k => k);
+    .map((k) => k.trim())
+    .filter((k) => k);
   const intervalMinutes = parseInt(elements.inputInterval.value);
 
   // Validation
@@ -116,7 +116,7 @@ async function handleAddTask() {
   try {
     const response = await sendMessage({
       type: 'ADD_TASK',
-      payload: { name: '', url, selector, monitorType, keywords, intervalMinutes }
+      payload: { name: '', url, selector, monitorType, keywords, intervalMinutes },
     });
 
     if (response.success) {
@@ -144,7 +144,7 @@ async function handleAddTask() {
 // ==================== Render ====================
 
 function updateStatus(tasks, unreadResp) {
-  const activeCount = tasks.filter(t => t.isActive).length;
+  const activeCount = tasks.filter((t) => t.isActive).length;
   const unreadCount = unreadResp.success ? unreadResp.count : 0;
 
   elements.activeCount.textContent = activeCount;
@@ -154,7 +154,7 @@ function updateStatus(tasks, unreadResp) {
 function renderTaskList(tasks, unreadByTask) {
   if (tasks.length === 0) {
     elements.emptyState.classList.remove('hidden');
-    elements.taskList.querySelectorAll('.task-item').forEach(el => el.remove());
+    elements.taskList.querySelectorAll('.task-item').forEach((el) => el.remove());
     return;
   }
 
@@ -164,8 +164,12 @@ function renderTaskList(tasks, unreadByTask) {
   tasks.sort((a, b) => {
     const aUnread = (unreadByTask[a.id] || 0) > 0 ? 1 : 0;
     const bUnread = (unreadByTask[b.id] || 0) > 0 ? 1 : 0;
-    if (aUnread !== bUnread) return bUnread - aUnread;
-    if (a.isActive !== b.isActive) return b.isActive - a.isActive;
+    if (aUnread !== bUnread) {
+      return bUnread - aUnread;
+    }
+    if (a.isActive !== b.isActive) {
+      return b.isActive - a.isActive;
+    }
     return new Date(b.createdAt) - new Date(a.createdAt);
   });
 
@@ -175,26 +179,30 @@ function renderTaskList(tasks, unreadByTask) {
   }
 
   // Clear existing and append
-  elements.taskList.querySelectorAll('.task-item').forEach(el => el.remove());
+  elements.taskList.querySelectorAll('.task-item').forEach((el) => el.remove());
   elements.taskList.appendChild(fragment);
 }
 
 function createTaskElement(task, unreadCount) {
   const item = document.createElement('div');
   item.className = 'task-item';
-  if (unreadCount > 0) item.classList.add('has-unread');
+  if (unreadCount > 0) {
+    item.classList.add('has-unread');
+  }
   item.dataset.taskId = task.id;
 
   const dotClass = getDotClass(task, unreadCount);
   const timeInfo = getTimeInfo(task);
 
-  const unreadBadge = unreadCount > 0
-    ? `<span class="unread-badge">${unreadCount > 9 ? '9+' : unreadCount}</span>`
-    : '';
+  const unreadBadge =
+    unreadCount > 0
+      ? `<span class="unread-badge">${unreadCount > 9 ? '9+' : unreadCount}</span>`
+      : '';
 
-  const errorBadge = task.errorCount > 0
-    ? `<span class="error-badge">${task.errorCount > 9 ? '9+' : task.errorCount}</span>`
-    : '';
+  const errorBadge =
+    task.errorCount > 0
+      ? `<span class="error-badge">${task.errorCount > 9 ? '9+' : task.errorCount}</span>`
+      : '';
 
   item.innerHTML = `
     <span class="task-dot ${dotClass}"></span>
@@ -203,9 +211,10 @@ function createTaskElement(task, unreadCount) {
       <div class="task-meta">${escapeHtml(task.selector || '全部页面')} · ${task.intervalMinutes}分钟 · ${timeInfo}</div>
     </div>
     <div class="task-actions">
-      ${task.isActive
-        ? `<button class="task-btn" data-action="pause">暂停</button>`
-        : `<button class="task-btn" data-action="resume">恢复</button>`
+      ${
+        task.isActive
+          ? '<button class="task-btn" data-action="pause">暂停</button>'
+          : '<button class="task-btn" data-action="resume">恢复</button>'
       }
       <button class="task-btn danger" data-action="delete">删除</button>
     </div>
@@ -214,7 +223,9 @@ function createTaskElement(task, unreadCount) {
   // Event delegation for action buttons
   item.addEventListener('click', async (e) => {
     const btn = e.target.closest('.task-btn');
-    if (!btn) return;
+    if (!btn) {
+      return;
+    }
     e.stopPropagation();
 
     const action = btn.dataset.action;
@@ -223,7 +234,9 @@ function createTaskElement(task, unreadCount) {
 
   // Click on task item (not on buttons) — open options with changes tab if unread
   item.addEventListener('click', (e) => {
-    if (e.target.closest('.task-btn')) return;
+    if (e.target.closest('.task-btn')) {
+      return;
+    }
     if (unreadCount > 0) {
       chrome.runtime.openOptionsPage();
     }
@@ -233,21 +246,35 @@ function createTaskElement(task, unreadCount) {
 }
 
 function getDotClass(task, unreadCount) {
-  if (unreadCount > 0) return 'orange';
-  if (!task.isActive) return 'gray';
-  if (task.errorCount > 0) return 'red';
+  if (unreadCount > 0) {
+    return 'orange';
+  }
+  if (!task.isActive) {
+    return 'gray';
+  }
+  if (task.errorCount > 0) {
+    return 'red';
+  }
   return 'green';
 }
 
 function getTimeInfo(task) {
-  if (!task.lastChecked) return '未检查';
+  if (!task.lastChecked) {
+    return '未检查';
+  }
   const now = Date.now();
   const last = new Date(task.lastChecked).getTime();
   const diff = now - last;
 
-  if (diff < 60000) return '刚刚';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
+  if (diff < 60000) {
+    return '刚刚';
+  }
+  if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)}分钟前`;
+  }
+  if (diff < 86400000) {
+    return `${Math.floor(diff / 3600000)}小时前`;
+  }
   return `${Math.floor(diff / 86400000)}天前`;
 }
 
@@ -262,8 +289,13 @@ async function handleTaskAction(action, taskId) {
         response = await sendMessage({ type: 'RESUME_TASK', payload: { taskId } });
         break;
       case 'delete':
-        if (!confirm('确定删除此监控任务？')) return;
+        if (!confirm('确定删除此监控任务？')) {
+          return;
+        }
         response = await sendMessage({ type: 'DELETE_TASK', payload: { taskId } });
+        break;
+
+      default:
         break;
     }
 
@@ -282,7 +314,11 @@ async function handleTaskAction(action, taskId) {
 function sendMessage(message) {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage(message, (response) => {
-      resolve(response || { success: false, error: 'No response' });
+      if (chrome.runtime.lastError) {
+        resolve({ success: false, error: chrome.runtime.lastError.message });
+      } else {
+        resolve(response || { success: false, error: 'No response' });
+      }
     });
   });
 }
@@ -295,7 +331,9 @@ function escapeHtml(text) {
 
 function showToast(message) {
   const existing = document.querySelector('.toast');
-  if (existing) existing.remove();
+  if (existing) {
+    existing.remove();
+  }
 
   const toast = document.createElement('div');
   toast.className = 'toast';
