@@ -9,31 +9,19 @@ import { initTheme } from '../themes/theme-system.js';
 const elements = {
   activeCount: document.getElementById('active-count'),
   unreadCount: document.getElementById('unread-count'),
-  formToggle: document.getElementById('form-toggle'),
-  formBody: document.getElementById('form-body'),
-  toggleIcon: document.getElementById('toggle-icon'),
-  inputUrl: document.getElementById('input-url'),
-  inputType: document.getElementById('input-type'),
-  inputKeywords: document.getElementById('input-keywords'),
-  keywordsGroup: document.getElementById('keywords-group'),
-  inputInterval: document.getElementById('input-interval'),
-  btnAdd: document.getElementById('btn-add'),
-  btnSettings: document.getElementById('btn-settings'),
   btnDashboard: document.getElementById('btn-dashboard'),
   btnResumeAll: document.getElementById('btn-resume-all'),
   btnPauseAll: document.getElementById('btn-pause-all'),
+  btnMonitorCurrent: document.getElementById('btn-monitor-current'),
 };
 
 // ==================== Initialization ====================
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Initialize theme first
   await initTheme();
-
   await refreshData();
   setupEventListeners();
 
-  // Auto-refresh when storage changes (e.g. new change detected by background)
   chrome.storage.onChanged.addListener((changes, areaName) => {
     if (areaName === 'local' && (changes.history || changes.badgeCount)) {
       refreshData();
@@ -53,94 +41,13 @@ async function refreshData() {
 // ==================== Event Listeners ====================
 
 function setupEventListeners() {
-  // Toggle form
-  elements.formToggle.addEventListener('click', toggleForm);
-
-  // Monitor type change - show/hide keywords
-  elements.inputType.addEventListener('change', () => {
-    elements.keywordsGroup.classList.toggle('hidden', elements.inputType.value !== 'keyword');
-  });
-
-  // Add task
-  elements.btnAdd.addEventListener('click', handleAddTask);
-
-  // Settings button
-  elements.btnSettings.addEventListener('click', () => {
-    chrome.runtime.openOptionsPage();
-  });
-
-  // Dashboard button
   elements.btnDashboard.addEventListener('click', () => {
     chrome.runtime.openOptionsPage();
   });
 
-  // Bulk actions
   elements.btnResumeAll.addEventListener('click', handleResumeAllTasks);
   elements.btnPauseAll.addEventListener('click', handlePauseAllTasks);
-}
-
-// ==================== Form Logic ====================
-
-let formExpanded = true;
-
-function toggleForm() {
-  formExpanded = !formExpanded;
-  if (formExpanded) {
-    elements.formBody.classList.remove('hidden');
-    elements.toggleIcon.classList.remove('collapsed');
-  } else {
-    elements.formBody.classList.add('hidden');
-    elements.toggleIcon.classList.add('collapsed');
-  }
-}
-
-async function handleAddTask() {
-  const url = elements.inputUrl.value.trim();
-  const monitorType = elements.inputType.value;
-  const keywords = elements.inputKeywords.value
-    .split(',')
-    .map((k) => k.trim())
-    .filter((k) => k);
-  const intervalMinutes = parseInt(elements.inputInterval.value);
-
-  // Validation
-  if (!url) {
-    showToast('请输入 URL');
-    return;
-  }
-  if (monitorType === 'keyword' && keywords.length === 0) {
-    showToast('关键词监控需要至少一个关键词');
-    return;
-  }
-
-  elements.btnAdd.disabled = true;
-  elements.btnAdd.textContent = '添加中...';
-
-  try {
-    const response = await sendMessage({
-      type: 'ADD_TASK',
-      payload: { name: '', url, monitorType, keywords, intervalMinutes },
-    });
-
-    if (response.success) {
-      showToast('监控已添加');
-      // Reset form
-      elements.inputUrl.value = '';
-      elements.inputType.value = 'text';
-      elements.inputKeywords.value = '';
-      elements.keywordsGroup.classList.add('hidden');
-      elements.inputInterval.value = '5';
-
-      await refreshData();
-    } else {
-      showToast(response.error || '添加失败');
-    }
-  } catch (error) {
-    showToast('添加失败: ' + error.message);
-  } finally {
-    elements.btnAdd.disabled = false;
-    elements.btnAdd.textContent = '开始监控';
-  }
+  elements.btnMonitorCurrent.addEventListener('click', handleMonitorCurrentPage);
 }
 
 // ==================== Render ====================
@@ -184,6 +91,45 @@ async function handlePauseAllTasks() {
   }
 }
 
+async function handleMonitorCurrentPage() {
+  elements.btnMonitorCurrent.disabled = true;
+  elements.btnMonitorCurrent.textContent = '获取中...';
+
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    if (!tab || !tab.url) {
+      showToast('无法获取当前页面 URL');
+      return;
+    }
+
+    if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('about:')) {
+      showToast('无法监控浏览器内部页面');
+      return;
+    }
+
+    const url = tab.url;
+    const name = tab.title || new URL(url).hostname;
+
+    const response = await sendMessage({
+      type: 'ADD_TASK',
+      payload: { name, url, monitorType: 'text', keywords: [], intervalMinutes: 5 },
+    });
+
+    if (response.success) {
+      showToast(`已添加监控: ${name}`);
+      await refreshData();
+    } else {
+      showToast(response.error || '添加失败');
+    }
+  } catch (error) {
+    showToast('添加失败: ' + error.message);
+  } finally {
+    elements.btnMonitorCurrent.disabled = false;
+    elements.btnMonitorCurrent.textContent = '📌 监控当前页面';
+  }
+}
+
 // ==================== Helpers ====================
 
 function sendMessage(message) {
@@ -196,12 +142,6 @@ function sendMessage(message) {
       }
     });
   });
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
 }
 
 function showToast(message) {
