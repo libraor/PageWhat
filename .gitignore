@@ -22,3 +22,5 @@ Python/
 .deepseek/
 
 AGENTS.md
+copy-to-dist.ps1
+verify-dist.js

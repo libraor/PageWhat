@@ -25,14 +25,37 @@ body {
 .app-header {
   position: relative;
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
   padding: 32px 32px 48px;
   background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
   color: white;
   border-radius: 0 0 24px 24px;
   box-shadow: 0 4px 20px rgba(26, 115, 232, 0.15);
   overflow: visible;
+}
+
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.github-link {
+  color: white;
+  opacity: 0.85;
+  transition: opacity 0.2s, transform 0.2s;
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.github-link:hover {
+  opacity: 1;
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .app-header::after {
@@ -777,5 +800,447 @@ mark.diff-keyword {
   .toolbar {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+/* ==================== Help Tab Styles ==================== */
+
+.help-container {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Table of Contents */
+.help-toc {
+  position: sticky;
+  top: 20px;
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 0 1px rgba(0, 0, 0, 0.08);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.help-toc h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #1a73e8;
+  color: #1a73e8;
+}
+
+.toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.toc-list li {
+  margin-bottom: 8px;
+}
+
+.toc-link {
+  display: block;
+  padding: 8px 12px;
+  color: #666;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 13px;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.toc-link:hover {
+  background: rgba(26, 115, 232, 0.08);
+  color: #1a73e8;
+  border-left-color: #1a73e8;
+}
+
+.toc-link.active {
+  background: rgba(26, 115, 232, 0.12);
+  color: #1a73e8;
+  font-weight: 500;
+  border-left-color: #1a73e8;
+}
+
+/* Help Content */
+.help-content {
+  min-width: 0;
+}
+
+.help-section {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 0 1px rgba(0, 0, 0, 0.08);
+  scroll-margin-top: 20px;
+}
+
+.help-section h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.help-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 12px;
+  margin-top: 20px;
+}
+
+.help-section h3:first-of-type {
+  margin-top: 0;
+}
+
+.help-section p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #555;
+  margin-bottom: 12px;
+}
+
+.help-section ul {
+  margin: 12px 0;
+  padding-left: 20px;
+}
+
+.help-section li {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+/* Highlight Box */
+.help-highlight-box {
+  background: linear-gradient(135deg, rgba(26, 115, 232, 0.08), rgba(26, 115, 232, 0.04));
+  border-left: 4px solid #1a73e8;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+.help-highlight-box p {
+  margin-bottom: 8px;
+  color: #333;
+}
+
+.help-highlight-box ul {
+  margin-top: 8px;
+}
+
+/* Feature Cards */
+.feature-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  border: 1px solid #e8e8e8;
+  transition: all 0.2s ease;
+}
+
+.feature-card:hover {
+  background: #f0f2f5;
+  border-color: #1a73e8;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.1);
+}
+
+.feature-card h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  font-size: 15px;
+}
+
+.feature-card p {
+  margin-bottom: 0;
+  font-size: 13px;
+}
+
+/* Type Detail Cards */
+.type-detail-card {
+  background: white;
+  border: 2px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 16px;
+  transition: all 0.2s ease;
+}
+
+.type-detail-card:hover {
+  border-color: #1a73e8;
+  box-shadow: 0 2px 12px rgba(26, 115, 232, 0.12);
+}
+
+.type-detail-card h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #1a73e8;
+  font-size: 16px;
+}
+
+.type-example {
+  background: #fafbfc;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.old-text {
+  background: #fdd;
+  color: #b71c1c;
+  text-decoration: line-through;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.new-text {
+  background: #c8e6c9;
+  color: #1b5e20;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.keyword-text {
+  background: #ffe0b2;
+  color: #e65100;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+/* Step Guide */
+.step-guide {
+  margin: 20px 0;
+}
+
+.step-item {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.step-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 48px;
+  bottom: -12px;
+  width: 2px;
+  background: linear-gradient(180deg, #1a73e8, transparent);
+}
+
+.step-number {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #1a73e8, #1557b0);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.3);
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-content h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.step-content p {
+  margin-bottom: 8px;
+}
+
+.step-content ul {
+  margin: 8px 0;
+}
+
+/* Tip Box */
+.help-tip-box {
+  background: #fff3e0;
+  border-left: 4px solid #ff9800;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+.help-tip-box p {
+  color: #e65100;
+  margin-bottom: 8px;
+}
+
+/* Setting Detail Cards */
+.setting-detail-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  border: 1px solid #e8e8e8;
+}
+
+.setting-detail-card h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 15px;
+  color: #1a73e8;
+}
+
+.setting-detail-card ul {
+  margin: 8px 0;
+}
+
+.setting-detail-card li {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+/* FAQ Items */
+.faq-item {
+  background: white;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  transition: all 0.2s ease;
+}
+
+.faq-item:hover {
+  border-color: #1a73e8;
+  box-shadow: 0 2px 8px rgba(26, 115, 232, 0.1);
+}
+
+.faq-item h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a73e8;
+  margin-bottom: 10px;
+}
+
+.faq-item p {
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.faq-item ul {
+  margin: 8px 0;
+}
+
+.faq-item li {
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* Tip Cards */
+.tip-card {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.06), rgba(76, 175, 80, 0.02));
+  border-left: 4px solid #4caf50;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  transition: all 0.2s ease;
+}
+
+.tip-card:hover {
+  box-shadow: 0 2px 12px rgba(76, 175, 80, 0.15);
+}
+
+.tip-card h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 15px;
+  color: #2e7d32;
+}
+
+.tip-card ul {
+  margin: 8px 0;
+}
+
+.tip-card code {
+  background: #f5f5f5;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  color: #e65100;
+  border: 1px solid #e0e0e0;
+}
+
+/* Responsive for Help Tab */
+@media (max-width: 768px) {
+  .help-container {
+    grid-template-columns: 1fr;
+  }
+
+  .help-toc {
+    position: relative;
+    top: 0;
+    max-height: none;
+    margin-bottom: 20px;
+  }
+
+  .help-section {
+    padding: 20px 16px;
+  }
+
+  .step-item:not(:last-child)::after {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .help-section {
+    padding: 16px 12px;
+  }
+
+  .help-section h2 {
+    font-size: 18px;
+  }
+
+  .help-section h3 {
+    font-size: 15px;
+  }
+
+  .step-item {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .step-number {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+
+  .toc-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .toc-link {
+    font-size: 12px;
+    padding: 6px 10px;
   }
 }

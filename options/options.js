@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupModal();
   setupSettings();
   setupTaskTableDelegation();
+  setupHelpNav();
   await loadMonitorsTab();
   await loadSettings();
 });
@@ -105,6 +106,67 @@ function setupTabs() {
       }
     });
   });
+}
+
+// ==================== Help Tab Navigation ====================
+
+function setupHelpNav() {
+  const tocLinks = document.querySelectorAll('.toc-link');
+  const helpSections = document.querySelectorAll('.help-section');
+
+  // Smooth scroll on TOC link click
+  tocLinks.forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const targetId = link.getAttribute('href').substring(1);
+      const targetSection = document.getElementById(targetId);
+      
+      if (targetSection) {
+        targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        
+        // Update URL hash without scrolling
+        history.pushState(null, null, `#${targetId}`);
+      }
+    });
+  });
+
+  // Highlight active section on scroll
+  const observerOptions = {
+    root: null,
+    rootMargin: '-20% 0px -70% 0px',
+    threshold: 0,
+  };
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        const sectionId = entry.target.id;
+        
+        // Update active TOC link
+        tocLinks.forEach((link) => {
+          link.classList.remove('active');
+          if (link.getAttribute('href') === `#${sectionId}`) {
+            link.classList.add('active');
+          }
+        });
+      }
+    });
+  }, observerOptions);
+
+  helpSections.forEach((section) => {
+    observer.observe(section);
+  });
+
+  // Restore active state from hash on page load
+  const hash = window.location.hash;
+  if (hash) {
+    const targetSection = document.querySelector(hash);
+    if (targetSection) {
+      setTimeout(() => {
+        targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }
 }
 
 // ==================== Modal ====================
