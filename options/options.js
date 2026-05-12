@@ -2,6 +2,8 @@
  * options.js - 管理页面逻辑
  */
 
+import { THEMES, initTheme, switchTheme, getCurrentTheme } from '../themes/theme-system.js';
+
 // ==================== DOM Elements ====================
 
 const $ = (id) => document.getElementById(id);
@@ -13,6 +15,8 @@ const dom = {
 
   // Monitors tab
   btnAddTask: $('btn-add-task'),
+  btnResumeAll: $('btn-resume-all'),
+  btnPauseAll: $('btn-pause-all'),
   modalOverlay: $('modal-overlay'),
   modalTitle: $('modal-title'),
   btnCloseModal: $('btn-close-modal'),
@@ -20,7 +24,6 @@ const dom = {
   btnSave: $('btn-save'),
   optName: $('opt-name'),
   optUrl: $('opt-url'),
-  optSelector: $('opt-selector'),
   optType: $('opt-type'),
   optKeywords: $('opt-keywords'),
   optKeywordsRow: document.querySelector('.opt-keywords-row'),
@@ -50,6 +53,8 @@ const dom = {
   setEnableNotifications: $('set-enable-notifications'),
   setEnableBadge: $('set-enable-badge'),
   setMaxHistory: $('set-max-history'),
+  setTheme: $('set-theme'),
+  themeDescription: $('theme-description'),
   btnExport: $('btn-export'),
   btnClearAllHistory: $('btn-clear-all-history'),
   btnSaveSettings: $('btn-save-settings'),
@@ -62,6 +67,9 @@ let _errorsLoading = false;
 // ==================== Initialization ====================
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Initialize theme first
+  await initTheme();
+
   setupTabs();
   setupModal();
   setupSettings();
@@ -117,6 +125,10 @@ function setupModal() {
       closeModal();
     }
   });
+
+  // Bulk actions
+  dom.btnResumeAll.addEventListener('click', handleResumeAllTasks);
+  dom.btnPauseAll.addEventListener('click', handlePauseAllTasks);
 }
 
 function openModal(task = null) {
@@ -125,7 +137,6 @@ function openModal(task = null) {
 
   dom.optName.value = task ? task.name : '';
   dom.optUrl.value = task ? task.url : '';
-  dom.optSelector.value = task ? task.selector : '';
   dom.optType.value = task ? task.monitorType : 'text';
   dom.optKeywords.value = task ? (task.keywords || []).join(', ') : '';
   dom.optInterval.value = task ? task.intervalMinutes : '5';
@@ -142,7 +153,6 @@ function closeModal() {
 
 async function handleSaveTask() {
   const url = dom.optUrl.value.trim();
-  const selector = dom.optSelector.value.trim();
   const monitorType = dom.optType.value;
   const keywords = dom.optKeywords.value
     .split(',')
@@ -154,7 +164,6 @@ async function handleSaveTask() {
   if (!url) {
     return alert('请输入 URL');
   }
-  // selector 可选，为空时监控整个页面
   if (monitorType === 'keyword' && keywords.length === 0) {
     return alert('请输入关键词');
   }
@@ -168,7 +177,6 @@ async function handleSaveTask() {
           taskId: editingTaskId,
           name: name || new URL(url).hostname,
           url,
-          selector,
           monitorType,
           keywords,
           intervalMinutes,
@@ -177,7 +185,7 @@ async function handleSaveTask() {
     } else {
       response = await sendMessage({
         type: 'ADD_TASK',
-        payload: { name, url, selector, monitorType, keywords, intervalMinutes },
+        payload: { name, url, monitorType, keywords, intervalMinutes },
       });
     }
 
@@ -260,6 +268,37 @@ async function handleDeleteTask(taskId) {
   await loadMonitorsTab();
 }
 
+async function handleResumeAllTasks() {
+  const response = await sendMessage({ type: 'RESUME_ALL_TASKS' });
+  if (response.success) {
+    if (response.count > 0) {
+      alert(`已开启 ${response.count} 个任务`);
+    } else {
+      alert('所有任务已处于开启状态');
+    }
+    await loadMonitorsTab();
+  } else {
+    alert(response.error || '操作失败');
+  }
+}
+
+async function handlePauseAllTasks() {
+  if (!confirm('确定要暂停所有监控任务吗？')) {
+    return;
+  }
+  const response = await sendMessage({ type: 'PAUSE_ALL_TASKS' });
+  if (response.success) {
+    if (response.count > 0) {
+      alert(`已暂停 ${response.count} 个任务`);
+    } else {
+      alert('所有任务已处于暂停状态');
+    }
+    await loadMonitorsTab();
+  } else {
+    alert(response.error || '操作失败');
+  }
+}
+
 async function loadMonitorsTab() {
   try {
     const response = await sendMessage({ type: 'GET_TASKS' });
@@ -291,7 +330,6 @@ async function loadMonitorsTab() {
         <td><span class="status-dot ${getStatusColor(task)}"></span></td>
         <td>${escapeHtml(task.name)}</td>
         <td class="url-cell" title="${escapeHtml(task.url)}">${escapeHtml(task.url)}</td>
-        <td><code>${escapeHtml(task.selector || '全部页面')}</code></td>
         <td><span class="type-badge ${task.monitorType}">${getTypeLabel(task.monitorType)}</span></td>
         <td>${task.intervalMinutes}分钟</td>
         <td>${formatTime(task.lastChecked)}</td>
@@ -674,6 +712,11 @@ function setupSettings() {
       alert('历史记录已清除');
     }
   });
+
+  // Theme selector change handler
+  if (dom.setTheme) {
+    dom.setTheme.addEventListener('change', handleThemeChange);
+  }
 }
 
 async function loadSettings() {
@@ -691,9 +734,29 @@ async function loadSettings() {
     dom.setEnableNotifications.checked = s.enableNotifications;
     dom.setEnableBadge.checked = s.enableBadge;
     dom.setMaxHistory.value = s.maxHistoryPerTask;
+
+    // Load theme setting
+    const currentTheme = s.theme || getCurrentTheme();
+    if (dom.setTheme) {
+      dom.setTheme.value = currentTheme;
+      updateThemeDescription(currentTheme);
+    }
   } catch (e) {
     console.error('Failed to load settings:', e);
   }
+}
+
+function updateThemeDescription(themeId) {
+  const theme = THEMES.find((t) => t.id === themeId);
+  if (theme && dom.themeDescription) {
+    dom.themeDescription.textContent = theme.description;
+  }
+}
+
+async function handleThemeChange(e) {
+  const themeId = e.target.value;
+  await switchTheme(themeId);
+  updateThemeDescription(themeId);
 }
 
 async function handleSaveSettings() {
@@ -708,6 +771,7 @@ async function handleSaveSettings() {
         enableNotifications: dom.setEnableNotifications.checked,
         enableBadge: dom.setEnableBadge.checked,
         maxHistoryPerTask: parseInt(dom.setMaxHistory.value),
+        theme: dom.setTheme ? dom.setTheme.value : getCurrentTheme(),
       },
     });
 
@@ -1431,7 +1495,6 @@ async function handleViewOnPage(record) {
 
   // 2. Prepare full injection data (pass complete snapshots for rendering)
   const injectData = {
-    selector: task.selector || '',
     changeType: record.changeType,
     oldText: record.oldSnapshot?.text || '',
     newText: record.newSnapshot?.text || '',
@@ -1520,7 +1583,7 @@ function waitForTabLoad(tabId, timeoutMs = 30000) {
  * - 关键词橙色高亮
  * - 自动滚动到对比面板或第一个变化
  *
- * @param {object} data - { selector, changeType, oldText, newText, oldHtml, newHtml, keywords, diff }
+ * @param {object} data - { changeType, oldText, newText, oldHtml, newHtml, keywords, diff }
  */
 /* eslint-disable no-var, no-redeclare, no-inner-declarations, max-depth, complexity */
 function highlightOnPage(data) {
@@ -1657,7 +1720,7 @@ function highlightOnPage(data) {
   document.head.appendChild(styleEl);
 
   // ---- Find target element ----
-  const el = data.selector ? document.querySelector(data.selector) : document.body;
+  const el = document.body;
 
   // Mark target element (if found)
   if (el) {
@@ -1830,13 +1893,13 @@ function highlightOnPage(data) {
       if (s.type === 'equal') {
         html += escHtml(compactWhitespaceLocal(s.text));
       } else if (s.type === 'removed' && side === 'before') {
-        html += '<mark class="removed">' + escHtml(s.text) + '</mark>';
+        html += '<mark class="diff-removed">' + escHtml(s.text) + '</mark>';
       } else if (s.type === 'removed' && side === 'after') {
         const txt = s.text.length > 500 ? s.text.slice(0, 500) + '\u2026' : s.text;
         html +=
           '<span class="diff-deleted-marker" title="已删除的内容">' + escHtml(txt) + '</span>';
       } else if (s.type === 'added' && side === 'after') {
-        html += '<mark class="added">' + escHtml(s.text) + '</mark>';
+        html += '<mark class="diff-added">' + escHtml(s.text) + '</mark>';
       } else if (s.type === 'added' && side === 'before') {
         html += '<span class="diff-added-marker" title="此处新增了内容">[+]</span>';
       }

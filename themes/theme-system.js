@@ -115,7 +115,9 @@ export async function loadThemeCSS(themeId) {
   // 创建新的 link 元素
   const link = document.createElement('link');
   link.rel = 'stylesheet';
-  link.href = theme.file;
+  // 使用 chrome.runtime.getURL 确保从扩展根目录解析路径
+  // 无论从 popup/ 还是 options/ 目录加载都能正确找到 themes/ 下的文件
+  link.href = chrome.runtime.getURL(theme.file);
   link.setAttribute('data-theme', themeId);
 
   return new Promise((resolve, reject) => {

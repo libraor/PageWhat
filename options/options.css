@@ -573,6 +573,11 @@ mark.diff-keyword {
   color: #999;
 }
 
+#theme-description {
+  flex: 1;
+  font-style: italic;
+}
+
 .settings-actions {
   text-align: right;
   padding-top: 8px;

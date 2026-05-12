@@ -5,7 +5,7 @@
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'FETCH_AND_EXTRACT') {
-    handleFetchAndExtract(message.url, message.selector)
+    handleFetchAndExtract(message.url)
       .then((result) => sendResponse(result))
       .catch((error) =>
         sendResponse({ error: `FETCH_ERROR: ${error.message}`, text: null, html: null })
@@ -17,7 +17,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 /**
  * 通过 fetch 获取页面并提取内容
  */
-async function handleFetchAndExtract(url, selector) {
+async function handleFetchAndExtract(url) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
@@ -56,9 +56,9 @@ async function handleFetchAndExtract(url, selector) {
       }
     }
 
-    const el = selector ? doc.querySelector(selector) : doc.body;
+    const el = doc.body;
     if (!el) {
-      return { error: 'SELECTOR_NOT_FOUND', text: null, html: null };
+      return { error: 'EXTRACTION_ERROR', text: null, html: null };
     }
 
     return {

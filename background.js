@@ -107,6 +107,12 @@ async function handleMessage(message, _sender) {
     case 'RESUME_TASK':
       return handleResumeTask(message.payload.taskId);
 
+    case 'RESUME_ALL_TASKS':
+      return handleResumeAllTasks();
+
+    case 'PAUSE_ALL_TASKS':
+      return handlePauseAllTasks();
+
     case 'CHECK_NOW':
       return handleCheckNow(message.payload.taskId);
 
@@ -172,7 +178,7 @@ async function handleMessage(message, _sender) {
 // ==================== Task Handlers ====================
 
 async function handleAddTask(payload) {
-  const { name, url, selector, monitorType, keywords, intervalMinutes } = payload;
+  const { name, url, monitorType, keywords, intervalMinutes } = payload;
 
   // Validate URL
   try {
@@ -197,7 +203,6 @@ async function handleAddTask(payload) {
     id: crypto.randomUUID(),
     name: name || new URL(url).hostname,
     url,
-    selector,
     monitorType: monitorType || 'text',
     keywords: keywords || [],
     intervalMinutes: interval,
@@ -286,6 +291,40 @@ async function handleCheckNow(taskId) {
   }
 
   return { success: true, changed: result.changed, task: result.task };
+}
+
+async function handleResumeAllTasks() {
+  const tasks = await Storage.getAllTasks();
+  let successCount = 0;
+
+  for (const task of tasks) {
+    if (!task.isActive) {
+      task.isActive = true;
+      task.errorCount = 0;
+      task.lastError = null;
+      await Storage.saveTask(task);
+      await AlarmManager.create(task.id, task.intervalMinutes);
+      successCount++;
+    }
+  }
+
+  return { success: true, count: successCount };
+}
+
+async function handlePauseAllTasks() {
+  const tasks = await Storage.getAllTasks();
+  let successCount = 0;
+
+  for (const task of tasks) {
+    if (task.isActive) {
+      task.isActive = false;
+      await Storage.saveTask(task);
+      await AlarmManager.remove(task.id);
+      successCount++;
+    }
+  }
+
+  return { success: true, count: successCount };
 }
 
 // ==================== Data Handlers ====================

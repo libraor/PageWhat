@@ -25,6 +25,8 @@
       <div class="tab-content active" id="tab-monitors">
         <div class="toolbar">
           <button class="btn btn-primary" id="btn-add-task">+ 添加监控</button>
+          <button class="btn btn-secondary" id="btn-resume-all">一键开启</button>
+          <button class="btn btn-danger" id="btn-pause-all">一键停止</button>
         </div>
 
         <!-- Add/Edit Form -->
@@ -42,14 +44,6 @@
               <div class="form-row">
                 <label>URL <span class="required">*</span></label>
                 <input type="url" id="opt-url" placeholder="https://example.com" />
-              </div>
-              <div class="form-row">
-                <label>CSS 选择器（留空监控全页）</label>
-                <input
-                  type="text"
-                  id="opt-selector"
-                  placeholder="如 #price, .content，留空监控全页"
-                />
               </div>
               <div class="form-row">
                 <label>监控类型</label>
@@ -91,7 +85,6 @@
                 <th>状态</th>
                 <th>名称</th>
                 <th>URL</th>
-                <th>选择器</th>
                 <th>类型</th>
                 <th>间隔</th>
                 <th>上次检查</th>
@@ -182,6 +175,21 @@
           <div class="setting-row">
             <label>图标角标</label>
             <input type="checkbox" id="set-enable-badge" checked />
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>外观设置</h3>
+          <div class="setting-row">
+            <label>主题风格</label>
+            <select id="set-theme">
+              <option value="modern-minimal">现代简约</option>
+              <option value="vintage-classic">复古经典</option>
+              <option value="future-tech">未来科技</option>
+              <option value="nature-fresh">自然清新</option>
+              <option value="business-pro">商务专业</option>
+            </select>
+            <span class="setting-hint" id="theme-description">以留白和清晰层次为核心，去除多余装饰</span>
           </div>
         </div>
 
