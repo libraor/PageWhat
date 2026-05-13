@@ -103,7 +103,11 @@ async function handleMonitorCurrentPage() {
       return;
     }
 
-    if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://') || tab.url.startsWith('about:')) {
+    if (
+      tab.url.startsWith('chrome://') ||
+      tab.url.startsWith('chrome-extension://') ||
+      tab.url.startsWith('about:')
+    ) {
       showToast('无法监控浏览器内部页面');
       return;
     }

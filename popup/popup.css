@@ -51,7 +51,9 @@ body {
 .github-link {
   color: white;
   opacity: 0.85;
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
   display: flex;
   align-items: center;
   padding: 4px;

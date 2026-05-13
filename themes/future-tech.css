@@ -90,7 +90,8 @@
    2. 排版规范 (Typography)
    ---------------------------------------------------------- */
 :root {
-  --ft-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC',
+  --ft-font-sans:
+    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC',
     'Microsoft YaHei', sans-serif;
   --ft-font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Consolas', monospace;
 
@@ -510,7 +511,9 @@ body.future-tech {
 .future-tech .form-row input:focus,
 .future-tech .form-row select:focus {
   border-color: var(--ft-primary-500);
-  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15), 0 0 12px rgba(6, 182, 212, 0.1);
+  box-shadow:
+    0 0 0 3px rgba(6, 182, 212, 0.15),
+    0 0 12px rgba(6, 182, 212, 0.1);
 }
 .future-tech .form-group input:disabled,
 .future-tech .form-group select:disabled,
@@ -608,7 +611,9 @@ body.future-tech {
   z-index: 200;
   border: 1px solid var(--ft-border-glow);
   box-shadow: var(--ft-shadow-glow);
-  animation: ft-toast-in 0.2s ease-out, ft-toast-out 0.3s 2s forwards;
+  animation:
+    ft-toast-in 0.2s ease-out,
+    ft-toast-out 0.3s 2s forwards;
 }
 @keyframes ft-toast-in {
   from {

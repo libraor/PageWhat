@@ -6,6 +6,7 @@ npm-debug.log*
 .DS_Store
 *.swp
 *.swo
+*.zip
 *~
 .env
 .vscode/
@@ -24,3 +25,7 @@ Python/
 AGENTS.md
 copy-to-dist.ps1
 verify-dist.js
+DEPLOYMENT.md
+RELEASE-CHECKLIST.md
+store-listing.md
+*.ps1

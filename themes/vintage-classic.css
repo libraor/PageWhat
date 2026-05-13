@@ -85,8 +85,8 @@
    2. 排版规范 (Typography)
    ---------------------------------------------------------- */
 :root {
-  --vc-font-sans: 'Noto Serif SC', 'Songti SC', 'SimSun', Georgia, 'PingFang SC',
-    'Microsoft YaHei', serif;
+  --vc-font-sans:
+    'Noto Serif SC', 'Songti SC', 'SimSun', Georgia, 'PingFang SC', 'Microsoft YaHei', serif;
   --vc-font-mono: 'Fira Code', 'Consolas', 'Courier New', monospace;
 
   --vc-text-xs: 11px;
@@ -573,7 +573,9 @@ body.vintage-classic {
   border-radius: var(--vc-radius-md);
   font-size: var(--vc-text-sm);
   z-index: 200;
-  animation: vc-toast-in 0.3s ease-out, vc-toast-out 0.3s 2s forwards;
+  animation:
+    vc-toast-in 0.3s ease-out,
+    vc-toast-out 0.3s 2s forwards;
 }
 @keyframes vc-toast-in {
   from {
